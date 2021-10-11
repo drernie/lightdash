@@ -28,7 +28,16 @@ To run a query:
 For example, if I wanted to know the "total number of orders split by order status", I'd select the `Unique order 
 count` metric to calculate the number of orders and the `Status` dimension to split that by status.
 
-## Visualising query results
+## Visualising query results as a chart
 
 Once the query executes, the results will show in the results table. You can then open the charts section and choose 
 a chart type to visualise the metric.
+
+## Saving a chart
+
+Saved Charts allow you to save a specific chart or visualisation so you can share it or revisit it again in future.
+
+When you open a saved charts, it will always update to display the latest data in your database. To save a chart:
+
+1. In the top right of the explore you will find the "three dots" and an option to save your chart.
+2. Enter a memorable name for the chart, a good idea is to use a question as the name "How many orders are there at each stage?"
