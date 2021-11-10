@@ -1,4 +1,4 @@
-import { USER_SEED } from 'common';
+import { SEED_EMAIL, SEED_USER } from 'common';
 
 describe('Settings - Profile', () => {
     before(() => {
@@ -12,9 +12,9 @@ describe('Settings - Profile', () => {
             url: 'api/v1/user/me',
             method: 'PATCH',
             body: {
-                firstName: USER_SEED.firstName,
-                lastName: USER_SEED.lastName,
-                email: USER_SEED.email,
+                firstName: SEED_USER.first_name,
+                lastName: SEED_USER.last_name,
+                email: SEED_EMAIL.email,
             },
         });
     });
@@ -30,8 +30,10 @@ describe('Settings - Profile', () => {
         cy.get('[data-cy="last-name-input"]').clear().type('Space');
         cy.get('[data-cy="email-input"]').clear().type('kspace@lightdash.com');
         cy.get('[data-cy="update-profile-settings"]').click();
-        cy.findByText('User updated with success').should('be.visible');
+        cy.findByText('Success! User details were updated.').should(
+            'be.visible',
+        );
         cy.visit('/');
-        cy.get('[data-cy="heading-username"]').should('contain', 'Kevin Space');
+        cy.get('[data-cy="user-avatar"]').should('contain', 'KS');
     });
 });

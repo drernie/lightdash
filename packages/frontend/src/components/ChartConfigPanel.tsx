@@ -17,7 +17,7 @@ type ContentProps = {
     chartConfig: ChartConfig;
 };
 
-const Content: React.FC<ContentProps> = ({ chartConfig }) => (
+export const ChartConfigOptions: React.FC<ContentProps> = ({ chartConfig }) => (
     <div
         style={{
             display: 'flex',
@@ -71,6 +71,7 @@ const Content: React.FC<ContentProps> = ({ chartConfig }) => (
                     label={friendlyName(metric)}
                     alignIndicator={Alignment.RIGHT}
                     onChange={() => chartConfig.toggleYMetric(metric)}
+                    disabled={chartConfig.metricOptions.length <= 1}
                 />
             </div>
         ))}
@@ -97,6 +98,7 @@ const Content: React.FC<ContentProps> = ({ chartConfig }) => (
                             dimension === chartConfig.seriesLayout.xDimension
                         }
                         onClick={() => chartConfig.setXDimension(dimension)}
+                        disabled={chartConfig.dimensionOptions.length <= 1}
                     >
                         X-axis
                     </Button>
@@ -135,7 +137,7 @@ export const ChartConfigPanel: React.FC<ChartConfigPanelProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     return (
         <Popover2
-            content={<Content chartConfig={chartConfig} />}
+            content={<ChartConfigOptions chartConfig={chartConfig} />}
             interactionKind="click"
             popoverClassName={Classes.POPOVER2_CONTENT_SIZING}
             isOpen={isOpen}

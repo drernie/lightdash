@@ -4,16 +4,19 @@ import {
     Explore,
     FieldType,
     MetricType,
+    SupportedDbtAdapter,
 } from 'common';
 
 export const EXPLORE: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: 'table1',
     baseTable: 'table1',
     joinedTables: [],
     tables: {
         table1: {
             name: 'table1',
+            database: 'database',
+            schema: 'schema',
             sqlTable: '"db"."schema"."table1"',
             dimensions: {
                 dim1: {

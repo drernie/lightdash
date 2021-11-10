@@ -6,6 +6,10 @@ export const EMPTY_CONFIG = {};
 
 export const NO_PROJECTS = {
     version: '1.0',
+};
+
+export const EMPTY_PROJECTS = {
+    version: '1.0',
     projects: [],
 };
 
@@ -34,18 +38,6 @@ export const LOCAL_PROJECT_MISSING_PROFILES_DIR = {
     type: 'dbt',
     name: 'project',
     project_dir: 'hello',
-};
-
-export const REMOTE_PROJECT = {
-    type: 'dbt_remote_server',
-    name: 'project',
-    rpc_server_host: 'localhost',
-    rpc_server_port: 4444,
-};
-
-export const REMOTE_PROJECT_INVALID_HOST = {
-    ...REMOTE_PROJECT,
-    rpc_server_host: 'localhost!!',
 };
 
 export const DBT_CLOUD_IDE_PROJECT = {

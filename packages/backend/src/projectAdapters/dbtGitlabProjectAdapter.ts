@@ -1,7 +1,9 @@
 import { CreateWarehouseCredentials } from 'common';
 import { DbtGitProjectAdapter } from './dbtGitProjectAdapter';
+import { WarehouseClient } from '../types';
 
 type DbtGitlabProjectAdapterArgs = {
+    warehouseClient: WarehouseClient;
     gitlabPersonalAccessToken: string;
     gitlabRepository: string;
     gitlabBranch: string;
@@ -12,6 +14,7 @@ type DbtGitlabProjectAdapterArgs = {
 
 export class DbtGitlabProjectAdapter extends DbtGitProjectAdapter {
     constructor({
+        warehouseClient,
         gitlabBranch,
         gitlabPersonalAccessToken,
         gitlabRepository,
@@ -21,6 +24,7 @@ export class DbtGitlabProjectAdapter extends DbtGitProjectAdapter {
     }: DbtGitlabProjectAdapterArgs) {
         const remoteRepositoryUrl = `https://:${gitlabPersonalAccessToken}@gitlab.com/${gitlabRepository}.git`;
         super({
+            warehouseClient,
             gitBranch: gitlabBranch,
             remoteRepositoryUrl,
             projectDirectorySubPath,

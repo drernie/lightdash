@@ -96,15 +96,9 @@ Finding the problem:
 ## Lightdash timedout trying to connect to dbt. Is dbt running correctly?
 
 ---
-This means that Lightdash had to wait too long for dbt to respond. This could be because:
-
-* You're a bigquery user and use `method: oauth` in your `profiles.yml` file. Check that the Lightdash server can access 
-credentials at `~/.config/gcloud`
-* You're running dbt in a separate process using the flag `LIGHTDASH_SPAWN_DBT=false`. In this case please check whether
-the dbt process process is running correctly.
-* If neither apply please [open an issue](https://github.com/lightdash/lightdash/issues/new/choose)
+This means that Lightdash had to wait too long for dbt to respond. Please [open an issue](https://github.com/lightdash/lightdash/issues/new/choose)
 
 ## I'm using an old version of dbt, is Lightdash supported?
 
 ---
-We only support dbt version `0.20.0`. Before using Lightdash, please check your project is compatible with the latest version.
+We only support dbt version `0.21.0`. Before using Lightdash, please check your project is compatible with the latest version.

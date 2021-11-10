@@ -1,59 +1,82 @@
 import {
-    DbtRpcDocsGenerateResults,
     DbtModelNode,
+    DbtRawModelNode,
     Explore,
     ExploreError,
+    isSupportedDbtAdapter,
+    SupportedDbtAdapter,
 } from 'common';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import { DbtRpcClientBase } from '../dbt/dbtRpcClientBase';
-import { attachTypesToModels, convertExplores } from '../dbt/translator';
+import {
+    attachTypesToModels,
+    convertExplores,
+    getSchemaStructureFromDbtModels,
+    normaliseModelDatabase,
+} from '../dbt/translator';
 import { MissingCatalogEntryError, ParseError } from '../errors';
 import modelJsonSchema from '../schema.json';
-import { ProjectAdapter } from '../types';
+import {
+    DbtClient,
+    ProjectAdapter,
+    WarehouseClient,
+    WarehouseCatalog,
+} from '../types';
 
 const ajv = new Ajv();
 addFormats(ajv);
 
 export class DbtBaseProjectAdapter implements ProjectAdapter {
-    rpcClient: DbtRpcClientBase;
+    dbtClient: DbtClient;
 
-    catalog: DbtRpcDocsGenerateResults | undefined;
+    warehouseClient: WarehouseClient;
 
-    constructor(rpcClient: DbtRpcClientBase) {
-        this.rpcClient = rpcClient;
+    warehouseCatalog: WarehouseCatalog | undefined;
+
+    constructor(dbtClient: DbtClient, warehouseClient: WarehouseClient) {
+        this.dbtClient = dbtClient;
+        this.warehouseClient = warehouseClient;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function,class-methods-use-this
     async destroy(): Promise<void> {}
 
     public async test(): Promise<void> {
-        await this.rpcClient.installDeps();
-        await this.runQuery("SELECT 'test connection'");
+        await this.dbtClient.test();
+        await this.warehouseClient.test();
     }
 
     public async compileAllExplores(
         loadSources: boolean = false,
     ): Promise<(Explore | ExploreError)[]> {
         // Install dependencies for dbt and fetch the manifest - may raise error meaning no explores compile
-        await this.rpcClient.installDeps();
-        const { manifest } = await this.rpcClient.getDbtManifest();
+        await this.dbtClient.installDeps();
+        const { manifest } = await this.dbtClient.getDbtManifest();
 
         // Type of the target warehouse
+        if (!isSupportedDbtAdapter(manifest.metadata)) {
+            throw new ParseError(
+                `Dbt project not supported. Lightdash does not support adapter ${manifest.metadata.adapter_type}`,
+                {},
+            );
+        }
         const adapterType = manifest.metadata.adapter_type;
 
         // Validate models in the manifest - models with invalid metadata will compile to failed Explores
         const models = Object.values(manifest.nodes).filter(
             (node) => node.resource_type === 'model',
-        ) as DbtModelNode[];
+        ) as DbtRawModelNode[];
         const [validModels, failedExplores] =
-            await DbtBaseProjectAdapter._validateDbtModelMetadata(models);
+            await DbtBaseProjectAdapter._validateDbtModelMetadata(
+                adapterType,
+                models,
+            );
 
         // Be lazy and try to attach types to the remaining models without refreshing the catalog
         try {
-            const lazyTypedModels = await attachTypesToModels(
+            const lazyTypedModels = attachTypesToModels(
                 validModels,
-                this.catalog || { nodes: {} },
+                this.warehouseCatalog || {},
                 true,
             );
             const lazyExplores = await convertExplores(
@@ -64,12 +87,13 @@ export class DbtBaseProjectAdapter implements ProjectAdapter {
             return [...lazyExplores, ...failedExplores];
         } catch (e) {
             if (e instanceof MissingCatalogEntryError) {
-                // Some types were missing so refresh the catalog and try again
-                const catalog = await this.rpcClient.getDbtCatalog();
-                this.catalog = catalog;
-                const typedModels = await attachTypesToModels(
-                    models,
-                    catalog,
+                this.warehouseCatalog = await this.warehouseClient.getCatalog(
+                    getSchemaStructureFromDbtModels(validModels),
+                );
+                // Some types were missing so refresh the schema and try again
+                const typedModels = attachTypesToModels(
+                    validModels,
+                    this.warehouseCatalog,
                     false,
                 );
                 const explores = await convertExplores(
@@ -84,18 +108,26 @@ export class DbtBaseProjectAdapter implements ProjectAdapter {
     }
 
     public async runQuery(sql: string): Promise<Record<string, any>[]> {
-        return this.rpcClient.runQuery(sql);
+        // Possible error if query is ran before dependencies are installed
+        return this.warehouseClient.runQuery(sql);
     }
 
     static async _validateDbtModelMetadata(
-        models: DbtModelNode[],
+        adapterType: SupportedDbtAdapter,
+        models: DbtRawModelNode[],
     ): Promise<[DbtModelNode[], ExploreError[]]> {
-        const validator = ajv.compile(modelJsonSchema);
+        const validator = ajv.compile<DbtRawModelNode>(modelJsonSchema);
         return models.reduce(
             ([validModels, invalidModels], model) => {
+                // Match against json schema
                 const isValid = validator(model);
                 if (isValid) {
-                    return [[...validModels, model], invalidModels];
+                    // Fix null databases
+                    const validatedModel = normaliseModelDatabase(
+                        model,
+                        adapterType,
+                    );
+                    return [[...validModels, validatedModel], invalidModels];
                 }
                 const exploreError: ExploreError = {
                     name: model.name,

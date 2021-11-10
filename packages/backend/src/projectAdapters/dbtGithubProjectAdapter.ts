@@ -1,7 +1,9 @@
 import { CreateWarehouseCredentials } from 'common';
 import { DbtGitProjectAdapter } from './dbtGitProjectAdapter';
+import { WarehouseClient } from '../types';
 
 type DbtGithubProjectAdapterArgs = {
+    warehouseClient: WarehouseClient;
     githubPersonalAccessToken: string;
     githubRepository: string;
     githubBranch: string;
@@ -12,6 +14,7 @@ type DbtGithubProjectAdapterArgs = {
 
 export class DbtGithubProjectAdapter extends DbtGitProjectAdapter {
     constructor({
+        warehouseClient,
         githubBranch,
         githubPersonalAccessToken,
         githubRepository,
@@ -21,6 +24,7 @@ export class DbtGithubProjectAdapter extends DbtGitProjectAdapter {
     }: DbtGithubProjectAdapterArgs) {
         const remoteRepositoryUrl = `https://${githubPersonalAccessToken}@github.com/${githubRepository}.git`;
         super({
+            warehouseClient,
             remoteRepositoryUrl,
             port,
             projectDirectorySubPath,

@@ -5,11 +5,11 @@ import {
     DbtProjectConfig,
     DbtProjectConfigBase,
     DbtLocalProjectConfig,
-    DbtRemoteProjectConfig,
     DbtCloudIDEProjectConfig,
     DbtGithubProjectConfig,
     DbtGitlabProjectConfig,
     ProjectType,
+    isLightdashMode,
 } from 'common';
 import lightdashV1JsonSchema from '../jsonSchemas/lightdashConfig/v1.json';
 import { ParseError } from '../errors';
@@ -20,7 +20,7 @@ export type DbtProjectConfigIn<T extends DbtProjectConfig> = Partial<T> &
 export type LightdashConfigIn = {
     version: '1.0';
     mode: LightdashMode;
-    projects: Array<Partial<DbtProjectConfig> & DbtProjectConfigBase>;
+    projects?: Array<Partial<DbtProjectConfig> & DbtProjectConfigBase>;
 };
 
 export type LightdashConfig = {
@@ -48,12 +48,6 @@ const dbtLocalProjectConfigKeys: ConfigKeys<DbtLocalProjectConfig> = {
     profiles_dir: false,
     project_dir: true,
     target: false,
-};
-const dbtRemoteProjectConfigKeys: ConfigKeys<DbtRemoteProjectConfig> = {
-    type: true,
-    name: true,
-    rpc_server_host: true,
-    rpc_server_port: true,
 };
 const dbtCloudIDEProjectConfigKeys: ConfigKeys<DbtCloudIDEProjectConfig> = {
     type: true,
@@ -101,7 +95,7 @@ const mergeProjectWithEnvironment = <T extends DbtProjectConfig>(
     }, project) as T;
 
 const mergeWithEnvironment = (config: LightdashConfigIn): LightdashConfig => {
-    const mergedProjects = config.projects.map((project, idx) => {
+    const mergedProjects = (config.projects || []).map((project, idx) => {
         const projectType = project.type;
         switch (project.type) {
             case ProjectType.DBT:
@@ -109,12 +103,6 @@ const mergeWithEnvironment = (config: LightdashConfigIn): LightdashConfig => {
                     idx,
                     project,
                     dbtLocalProjectConfigKeys,
-                );
-            case ProjectType.DBT_REMOTE_SERVER:
-                return mergeProjectWithEnvironment(
-                    idx,
-                    project,
-                    dbtRemoteProjectConfigKeys,
                 );
             case ProjectType.DBT_CLOUD_IDE:
                 return mergeProjectWithEnvironment(
@@ -150,8 +138,19 @@ const mergeWithEnvironment = (config: LightdashConfigIn): LightdashConfig => {
             {},
         );
     }
+    const lightdashMode = process.env.LIGHTDASH_MODE;
+    if (lightdashMode !== undefined && !isLightdashMode(lightdashMode)) {
+        throw new ParseError(
+            `Lightdash mode set by environment variable LIGHTDASH_MODE=${lightdashMode} is invalid. Must be one of ${Object.values(
+                LightdashMode,
+            )}`,
+            {},
+        );
+    }
+
     return {
         ...config,
+        mode: lightdashMode || config.mode,
         projects: mergedProjects,
         rudder: {
             writeKey:

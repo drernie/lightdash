@@ -1,26 +1,27 @@
-import React, { useState } from 'react';
 import {
     Alignment,
     Button,
     Classes,
+    Menu,
+    MenuItem,
     Navbar,
     NavbarDivider,
     NavbarGroup,
     NavbarHeading,
-    Menu,
-    MenuItem,
-    Position,
     PopoverInteractionKind,
+    Position,
 } from '@blueprintjs/core';
-import { Tooltip2, Popover2 } from '@blueprintjs/popover2';
+import { Popover2 } from '@blueprintjs/popover2';
+import React, { useState } from 'react';
 import { useMutation } from 'react-query';
-import { useHistory, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { lightdashApi } from '../api';
 import { useApp } from '../providers/AppProvider';
-import UserSettingsModal from './UserSettingsModal/UserSettingsModal';
-import NavLink from './NavLink';
+import { UserAvatar } from './Avatar';
 import { ErrorLogsDrawer } from './ErrorLogsDrawer';
+import NavLink from './NavLink';
 import { ShowErrorsButton } from './ShowErrorsButton';
+import UserSettingsModal from './UserSettingsModal/UserSettingsModal';
 
 const logoutQuery = async () =>
     lightdashApi({
@@ -35,9 +36,8 @@ const AppBar = () => {
         errorLogs: { errorLogs, setErrorLogsVisible },
     } = useApp();
     const { projectUuid } = useParams<{ projectUuid: string | undefined }>();
-    const { push } = useHistory();
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const { isLoading, mutate } = useMutation(logoutQuery, {
+    const { mutate } = useMutation(logoutQuery, {
         mutationKey: ['logout'],
         onSuccess: () => {
             window.location.href = '/login';
@@ -53,75 +53,90 @@ const AppBar = () => {
                 <NavbarGroup align={Alignment.LEFT}>
                     <NavbarHeading>{user.data?.organizationName}</NavbarHeading>
                     <NavbarDivider />
-                    {projectUuid && (
-                        <NavLink
-                            to={`/projects/${projectUuid}/tables`}
-                            style={{ marginRight: 10 }}
-                        >
-                            <Button minimal icon="database" text="Explore" />
-                        </NavLink>
-                    )}
-                </NavbarGroup>
-                <NavbarGroup align={Alignment.LEFT}>
                     <Popover2
-                        className="bp3-button bp3-minimal"
-                        interactionKind={PopoverInteractionKind.HOVER}
+                        interactionKind={PopoverInteractionKind.CLICK}
                         content={
-                            <Menu className="browse-menu">
-                                <MenuItem
-                                    text="Dashboards"
-                                    onClick={() =>
-                                        push({
-                                            pathname: `/projects/${projectUuid}/dashboards`,
-                                        })
-                                    }
-                                />
-                                <MenuItem
-                                    text="Saved charts"
-                                    onClick={() =>
-                                        push({
-                                            pathname: `/projects/${projectUuid}/saved`,
-                                        })
-                                    }
-                                />
+                            <Menu>
+                                <NavLink to={`/projects/${projectUuid}/tables`}>
+                                    <MenuItem
+                                        role="button"
+                                        icon="th"
+                                        text="Tables"
+                                        style={{ marginBottom: 5 }}
+                                    />
+                                </NavLink>
+                                <NavLink
+                                    to={`/projects/${projectUuid}/sqlRunner`}
+                                >
+                                    <MenuItem
+                                        role="button"
+                                        icon="console"
+                                        text="SQL Runner"
+                                    />
+                                </NavLink>
                             </Menu>
                         }
                         position={Position.BOTTOM_LEFT}
                     >
-                        Browse
+                        <Button minimal icon="database" text="Explore" />
                     </Popover2>
+                    <Popover2
+                        interactionKind={PopoverInteractionKind.CLICK}
+                        content={
+                            <Menu>
+                                <NavLink
+                                    to={`/projects/${projectUuid}/dashboards`}
+                                >
+                                    <MenuItem
+                                        role="button"
+                                        text="Dashboards"
+                                        icon="control"
+                                        style={{ marginBottom: 5 }}
+                                    />
+                                </NavLink>
+                                <NavLink
+                                    to={`/projects/${projectUuid}/saved`}
+                                    style={{ marginBottom: 5 }}
+                                >
+                                    <MenuItem
+                                        icon="chart"
+                                        text="Saved charts"
+                                    />
+                                </NavLink>
+                            </Menu>
+                        }
+                        position={Position.BOTTOM_LEFT}
+                    >
+                        <Button minimal icon="search" text="Browse" />
+                    </Popover2>
+                    <Button
+                        minimal
+                        icon="cog"
+                        text="Settings"
+                        onClick={() => setIsSettingsOpen(true)}
+                        data-cy="settings-button"
+                    />
                 </NavbarGroup>
                 <NavbarGroup align={Alignment.RIGHT}>
                     <ShowErrorsButton
                         errorLogs={errorLogs}
                         setErrorLogsVisible={setErrorLogsVisible}
                     />
-                    <NavbarHeading
-                        style={{ marginRight: 5 }}
-                        data-cy="heading-username"
+                    <Popover2
+                        interactionKind={PopoverInteractionKind.CLICK}
+                        content={
+                            <Menu>
+                                <MenuItem
+                                    icon="log-out"
+                                    text="Logout"
+                                    onClick={() => mutate()}
+                                />
+                            </Menu>
+                        }
+                        position={Position.BOTTOM_LEFT}
                     >
-                        {user.data?.firstName} {user.data?.lastName}
-                    </NavbarHeading>
-                    <NavbarDivider />
-                    <Tooltip2 content="Settings">
-                        <Button
-                            icon="cog"
-                            minimal
-                            intent="none"
-                            loading={isLoading}
-                            onClick={() => setIsSettingsOpen(true)}
-                            data-cy="settings-button"
-                        />
-                    </Tooltip2>
-                    <Tooltip2 content="Logout">
-                        <Button
-                            icon="log-out"
-                            minimal
-                            intent="danger"
-                            loading={isLoading}
-                            onClick={() => mutate()}
-                        />
-                    </Tooltip2>
+                        <UserAvatar />
+                    </Popover2>
                 </NavbarGroup>
             </Navbar>
             <UserSettingsModal

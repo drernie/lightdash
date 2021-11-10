@@ -1,18 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import {
-    ApiError,
     ApiQueryResults,
     CompiledDimension,
+    DimensionType,
     fieldId as getFieldId,
     friendlyName,
     getDimensions,
     TableCalculation,
 } from 'common';
-import { UseQueryResult } from 'react-query';
-import { useSavedQuery } from './useSavedQuery';
 import { useExplore } from './useExplore';
 import { getDimensionFormatter } from './useColumns';
-import { useQueryResults } from './useQueryResults';
 
 const getDimensionFormatterByKey = (
     dimensions: CompiledDimension[],
@@ -63,6 +60,7 @@ type ChartConfigBase = {
     tableCalculationOptions: TableCalculation[];
     eChartDimensions: { name: string; displayName: string }[];
     series: string[];
+    xDimensionType: DimensionType | undefined;
 };
 export type ChartConfig = ChartConfigBase &
     (
@@ -84,17 +82,17 @@ type ValidSeriesLayout = {
 type SeriesLayout = Partial<ValidSeriesLayout>;
 
 const defaultLayout = (
-    queryResults: UseQueryResult<ApiQueryResults, ApiError>,
+    queryResults: ApiQueryResults | undefined,
 ): SeriesLayout => {
-    if (queryResults.data) {
-        const xDimension = queryResults.data.metricQuery.dimensions[0];
+    if (queryResults) {
+        const xDimension = queryResults.metricQuery.dimensions[0];
         const groupDimension =
-            queryResults.data.metricQuery.dimensions.length > 1
-                ? queryResults.data.metricQuery.dimensions[1]
+            queryResults.metricQuery.dimensions.length > 1
+                ? queryResults.metricQuery.dimensions[1]
                 : undefined;
         const possibleYMetrics = [
-            ...queryResults.data.metricQuery.metrics,
-            ...queryResults.data.metricQuery.tableCalculations.map(
+            ...queryResults.metricQuery.metrics,
+            ...queryResults.metricQuery.tableCalculations.map(
                 ({ name }) => name,
             ),
         ];
@@ -123,28 +121,27 @@ const isValidSeriesLayout = (
     seriesLayout.yMetrics.length > 0;
 
 export const useChartConfig = (
-    savedQueryUuid: string | undefined,
+    tableName: string | undefined,
+    results: ApiQueryResults | undefined,
+    defaultSeriesLayout: SeriesLayout | undefined,
 ): ChartConfig => {
-    const { data } = useSavedQuery({ id: savedQueryUuid });
-    const queryResults = useQueryResults();
-    const { data: results } = queryResults;
     const [seriesLayout, setSeriesLayout] = useState<SeriesLayout>(
-        defaultLayout(queryResults),
+        defaultLayout(results),
     );
-    const activeExplore = useExplore();
+    const activeExplore = useExplore(tableName);
     const dimensions = activeExplore.data
         ? getDimensions(activeExplore.data)
         : [];
-    const dimensionOptions = queryResults.data?.metricQuery.dimensions || [];
-    const metricOptions = queryResults.data?.metricQuery.metrics || [];
+    const dimensionOptions = results?.metricQuery.dimensions || [];
+    const metricOptions = results?.metricQuery.metrics || [];
     const tableCalculationOptions =
-        queryResults.data?.metricQuery.tableCalculations || [];
+        results?.metricQuery.tableCalculations || [];
 
     useEffect(() => {
-        if (data?.chartConfig) {
-            setSeriesLayout(data?.chartConfig.seriesLayout);
+        if (defaultSeriesLayout) {
+            setSeriesLayout(defaultSeriesLayout);
         }
-    }, [data]);
+    }, [defaultSeriesLayout]);
 
     useEffect(() => {
         if (results) {
@@ -198,7 +195,7 @@ export const useChartConfig = (
     }, [results]);
 
     const setXDimension = (xDimension: string) => {
-        if (queryResults.data)
+        if (results)
             setSeriesLayout((layout) => {
                 const groupDimension =
                     xDimension === layout.groupDimension
@@ -209,7 +206,7 @@ export const useChartConfig = (
     };
 
     const setGroupDimension = (groupDimension: string | undefined) => {
-        if (queryResults.data)
+        if (results)
             setSeriesLayout((layout) => {
                 const xDimension =
                     groupDimension === layout.xDimension
@@ -224,7 +221,7 @@ export const useChartConfig = (
     };
 
     const toggleYMetric = (yMetric: string) => {
-        if (queryResults.data)
+        if (results)
             setSeriesLayout((layout) => {
                 if (!layout.yMetrics) return { ...layout, yMetrics: [yMetric] };
                 const idx = layout.yMetrics.findIndex((m) => m === yMetric);
@@ -244,7 +241,7 @@ export const useChartConfig = (
             });
     };
 
-    if (queryResults.data && isValidSeriesLayout(seriesLayout)) {
+    if (results && isValidSeriesLayout(seriesLayout)) {
         const { groupDimension } = seriesLayout;
         let plotData: any[];
         let series: string[];
@@ -262,7 +259,7 @@ export const useChartConfig = (
                 groupDimension,
             );
 
-            [series, groupChartDimensions] = queryResults.data.rows.reduce<
+            [series, groupChartDimensions] = results.rows.reduce<
                 [string[], ChartConfig['eChartDimensions']]
             >(
                 ([prevSeries, prevGroupChartDimensions], r) => {
@@ -286,7 +283,7 @@ export const useChartConfig = (
 
             eChartDimensions.push(...groupChartDimensions);
             plotData = pivot(
-                queryResults.data.rows,
+                results.rows,
                 dimensions,
                 seriesLayout.xDimension,
                 groupDimension,
@@ -294,7 +291,7 @@ export const useChartConfig = (
             );
         } else if (groupDimension) {
             series = Array.from(
-                new Set(queryResults.data.rows.map((r) => r[groupDimension])),
+                new Set(results.rows.map((r) => r[groupDimension])),
             );
             const dimensionFormatter = getDimensionFormatterByKey(
                 dimensions,
@@ -310,7 +307,7 @@ export const useChartConfig = (
                 }));
             eChartDimensions.push(...groupChartDimensions);
             plotData = pivot(
-                queryResults.data.rows,
+                results.rows,
                 dimensions,
                 seriesLayout.xDimension,
                 groupDimension,
@@ -327,7 +324,7 @@ export const useChartConfig = (
                 dimensions,
                 seriesLayout.xDimension,
             );
-            plotData = queryResults.data.rows.map((row) =>
+            plotData = results.rows.map((row) =>
                 dimensionFormatter
                     ? {
                           ...row,
@@ -338,6 +335,9 @@ export const useChartConfig = (
                     : row,
             );
         }
+        const xDimensionType = dimensions.find(
+            (dimension) => getFieldId(dimension) === seriesLayout.xDimension,
+        )?.type;
         return {
             setXDimension,
             setGroupDimension,
@@ -349,6 +349,7 @@ export const useChartConfig = (
             tableCalculationOptions,
             dimensionOptions,
             series,
+            xDimensionType,
         };
     }
     return {
@@ -362,5 +363,6 @@ export const useChartConfig = (
         tableCalculationOptions,
         dimensionOptions,
         series: [],
+        xDimensionType: undefined,
     };
 };

@@ -1,4 +1,4 @@
-import { ApiError, ApiQueryResults, MetricQuery } from 'common';
+import { ApiError, ApiQueryResults, MetricQuery, SavedQuery } from 'common';
 import { useQuery } from 'react-query';
 import { useParams } from 'react-router-dom';
 import { lightdashApi } from '../api';
@@ -53,5 +53,23 @@ export const useQueryResults = () => {
         retry: false,
         refetchOnMount: false,
         onError: (result) => setErrorResponse(result),
+    });
+};
+
+export const useSavedChartResults = (
+    projectUuid: string,
+    savedChart: SavedQuery,
+) => {
+    const queryKey = ['savedChartResults', savedChart.uuid];
+    return useQuery<ApiQueryResults, ApiError>({
+        queryKey,
+        queryFn: () =>
+            getQueryResults(
+                projectUuid,
+                savedChart.tableName,
+                savedChart.metricQuery,
+            ),
+        retry: false,
+        refetchOnMount: false,
     });
 };

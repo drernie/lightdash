@@ -1,25 +1,27 @@
-import React, { FC, useState, useEffect } from 'react';
-import {
-    Button,
-    Colors,
-    FormGroup,
-    InputGroup,
-    Intent,
-    Card,
-    H2,
-} from '@blueprintjs/core';
+import React, { FC, useEffect } from 'react';
+import { Button, Colors, Intent, Card, H2 } from '@blueprintjs/core';
 import { useMutation } from 'react-query';
+import { useForm } from 'react-hook-form';
 import { Redirect, useLocation } from 'react-router-dom';
-import { ApiError, LightdashMode, LightdashUser, USER_SEED } from 'common';
+import {
+    ApiError,
+    LightdashMode,
+    LightdashUser,
+    SEED_EMAIL,
+    SEED_PASSWORD,
+} from 'common';
 import { lightdashApi } from '../api';
-import { AppToaster } from '../components/AppToaster';
 import { useApp } from '../providers/AppProvider';
 import AboutFooter from '../components/AboutFooter';
 import PageSpinner from '../components/PageSpinner';
-import PasswordInput from '../components/PasswordInput';
 import { useTracking } from '../providers/TrackingProvider';
+import Form from '../components/ReactHookForm/Form';
+import Input from '../components/ReactHookForm/Input';
+import PasswordInput from '../components/ReactHookForm/PasswordInput';
 
-const loginQuery = async (data: { email: string; password: string }) =>
+type LoginParams = { email: string; password: string };
+
+const loginQuery = async (data: LoginParams) =>
     lightdashApi<LightdashUser>({
         url: `/login`,
         method: 'POST',
@@ -28,74 +30,41 @@ const loginQuery = async (data: { email: string; password: string }) =>
 
 const Login: FC = () => {
     const location = useLocation<{ from?: Location } | undefined>();
-    const { health } = useApp();
-    const [email, setEmail] = useState<string>();
-    const [password, setPassword] = useState<string>();
+    const { health, showToastError } = useApp();
+    const methods = useForm<LoginParams>({
+        mode: 'onSubmit',
+    });
     const { identify } = useTracking();
 
-    const { isLoading, status, error, mutate } = useMutation<
+    const { isLoading, mutate } = useMutation<
         LightdashUser,
         ApiError,
-        { email: string; password: string }
+        LoginParams
     >(loginQuery, {
         mutationKey: ['login'],
-        onSuccess: (data) => identify({ id: data.userUuid }),
-    });
-
-    useEffect(() => {
-        if (error) {
-            const [first, ...rest] = error.error.message.split('\n');
-            AppToaster.show(
-                {
-                    intent: 'danger',
-                    message: (
-                        <div>
-                            <b>{first}</b>
-                            <p>{rest.join('\n')}</p>
-                        </div>
-                    ),
-                    timeout: 0,
-                    icon: 'error',
-                },
-                first,
-            );
-        }
-    }, [error]);
-
-    useEffect(() => {
-        if (status === 'success') {
+        onSuccess: (data) => {
+            identify({ id: data.userUuid });
             window.location.href = location.state?.from
                 ? `${location.state.from.pathname}${location.state.from.search}`
                 : '/';
-        }
-    }, [status, location]);
+        },
+        onError: (error) => {
+            showToastError({
+                title: `Failed to login`,
+                subtitle: error.error.message,
+            });
+        },
+    });
 
     useEffect(() => {
         if (health.data?.mode === LightdashMode.DEMO) {
-            setEmail(USER_SEED.email);
-            setPassword(USER_SEED.password);
+            methods.setValue('email', SEED_EMAIL.email);
+            methods.setValue('password', SEED_PASSWORD.password);
         }
-    }, [health]);
+    }, [health, methods]);
 
-    const handleLogin = () => {
-        if (email && password) {
-            mutate({ email, password });
-        } else {
-            const message = 'Required fields: email and password';
-            AppToaster.show(
-                {
-                    intent: 'danger',
-                    message: (
-                        <div>
-                            <b>{message}</b>
-                        </div>
-                    ),
-                    timeout: 3000,
-                    icon: 'error',
-                },
-                message,
-            );
-        }
+    const handleLogin = (data: LoginParams) => {
+        mutate(data);
     };
 
     if (health.isLoading) {
@@ -139,35 +108,34 @@ const Login: FC = () => {
                     elevation={2}
                 >
                     <H2 style={{ marginBottom: 25 }}>Login</H2>
-                    <FormGroup label="Email" labelFor="email-input">
-                        <InputGroup
-                            id="email-input"
+                    <Form methods={methods} onSubmit={handleLogin}>
+                        <Input
+                            label="Email"
+                            name="email"
                             placeholder="Email"
-                            type="email"
-                            required
                             disabled={isLoading}
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            data-cy="email"
+                            rules={{
+                                required: 'Required field',
+                            }}
                         />
-                    </FormGroup>
-                    <PasswordInput
-                        label="Password"
-                        placeholder="Enter your password..."
-                        required
-                        disabled={isLoading}
-                        value={password}
-                        onChange={setPassword}
-                        data-cy="password"
-                    />
-                    <Button
-                        style={{ alignSelf: 'flex-end', marginTop: 20 }}
-                        intent={Intent.PRIMARY}
-                        text="Login"
-                        onClick={handleLogin}
-                        loading={isLoading}
-                        data-cy="login-button"
-                    />
+                        <PasswordInput
+                            label="Password"
+                            name="password"
+                            placeholder="Enter your password..."
+                            disabled={isLoading}
+                            rules={{
+                                required: 'Required field',
+                            }}
+                        />
+                        <Button
+                            type="submit"
+                            style={{ float: 'right', marginTop: 20 }}
+                            intent={Intent.PRIMARY}
+                            text="Login"
+                            loading={isLoading}
+                            data-cy="login-button"
+                        />
+                    </Form>
                 </Card>
                 <AboutFooter />
             </div>

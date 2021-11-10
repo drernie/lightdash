@@ -35,6 +35,8 @@ const SideBarLoadingState = () => (
     </Menu>
 );
 const BasePanel = () => {
+    const history = useHistory();
+    const { projectUuid } = useParams<{ projectUuid: string }>();
     const exploresResult = useExplores();
     const [showChangeExploreConfirmation, setShowChangeExploreConfirmation] =
         useState(false);
@@ -99,7 +101,9 @@ const BasePanel = () => {
                                         )
                                             confirm(explore.name);
                                         else {
-                                            setActiveTableName(explore.name);
+                                            history.push(
+                                                `/projects/${projectUuid}/tables/${explore.name}`,
+                                            );
                                         }
                                     }}
                                 />
@@ -157,13 +161,10 @@ type ExplorePanelProps = {
 };
 export const ExplorePanel = ({ onBack }: ExplorePanelProps) => {
     const {
-        errorLogs: { showError },
-    } = useApp();
-    const {
-        state: { activeFields },
+        state: { activeFields, tableName: activeTableName },
         actions: { toggleActiveField },
     } = useExplorer();
-    const exploresResult = useExplore();
+    const exploresResult = useExplore(activeTableName);
     if (exploresResult.data) {
         const activeExplore = exploresResult.data;
         const [databaseName, schemaName, tableName] = activeExplore.tables[

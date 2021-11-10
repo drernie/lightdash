@@ -1,7 +1,7 @@
 import EChartsReact from 'echarts-for-react';
-import React, { RefObject, FC } from 'react';
-import { friendlyName, DBChartTypes } from 'common';
-import { NonIdealState } from '@blueprintjs/core';
+import React, { FC, RefObject } from 'react';
+import { DBChartTypes, DimensionType, friendlyName } from 'common';
+import { NonIdealState, Spinner } from '@blueprintjs/core';
 import { ChartConfig } from '../hooks/useChartConfig';
 
 const flipXFromChartType = (chartType: DBChartTypes) => {
@@ -44,24 +44,44 @@ const EmptyChart = () => (
         />
     </div>
 );
+const LoadingChart = () => (
+    <div style={{ padding: '50px 0' }}>
+        <NonIdealState title="Loading chart" icon={<Spinner />} />
+    </div>
+);
+
+const axisTypeFromDimensionType = (
+    dimensionType: DimensionType | undefined,
+) => {
+    switch (dimensionType) {
+        case DimensionType.DATE:
+        case DimensionType.TIMESTAMP:
+            return 'time';
+        default:
+            return 'category';
+    }
+};
 
 type SimpleChartProps = {
+    isLoading: boolean;
     chartRef: RefObject<EChartsReact>;
     chartType: DBChartTypes;
     chartConfig: ChartConfig;
 };
 export const SimpleChart: FC<SimpleChartProps> = ({
+    isLoading,
     chartRef,
     chartType,
     chartConfig,
 }) => {
+    if (isLoading) return <LoadingChart />;
     if (chartConfig.plotData === undefined) return <EmptyChart />;
     const xlabel = friendlyName(chartConfig.seriesLayout.xDimension);
     const ylabel =
         chartConfig.seriesLayout.groupDimension &&
         chartConfig.seriesLayout.yMetrics.length === 1 &&
         friendlyName(chartConfig.seriesLayout.yMetrics[0]);
-    const xType = 'category';
+    const xType = axisTypeFromDimensionType(chartConfig.xDimensionType);
     const yType = 'value';
 
     const flipX = flipXFromChartType(chartType);
@@ -73,7 +93,7 @@ export const SimpleChart: FC<SimpleChartProps> = ({
         nameTextStyle: { fontWeight: 'bold' },
     };
     const yAxis = {
-        type: flipX ? xType : yType,
+        type: flipX ? 'category' : yType,
         name: flipX ? xlabel : ylabel,
         nameTextStyle: { fontWeight: 'bold' },
     };
@@ -86,8 +106,15 @@ export const SimpleChart: FC<SimpleChartProps> = ({
             2,
     };
 
-    const series = chartConfig.series.map(() => ({
+    const series = chartConfig.series.map((seriesDimension) => ({
         type: echartType(chartType),
+        connectNulls: true,
+        encode: {
+            x: flipX ? seriesDimension : chartConfig.seriesLayout.xDimension,
+            y: flipX ? chartConfig.seriesLayout.xDimension : seriesDimension,
+            tooltip: [chartConfig.seriesLayout.xDimension, seriesDimension],
+            seriesName: seriesDimension,
+        },
     }));
     const options = {
         xAxis,
@@ -105,8 +132,12 @@ export const SimpleChart: FC<SimpleChartProps> = ({
         },
     };
     return (
-        <div style={{ padding: 10 }}>
+        <div style={{ padding: 10, height: '100%' }}>
             <EChartsReact
+                style={{
+                    height: '100%',
+                    width: '100%',
+                }}
                 ref={chartRef}
                 option={options}
                 notMerge

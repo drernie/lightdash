@@ -7,15 +7,12 @@ sidebar_label: Connect a project
 
 How you connect your dbt project depends on where it is hosted.
 
-1. If you use dbt cloud, then check out the [how to connect dbt cloud](#dbt-cloud) instructions
-2. If you want to connect a dbt project that's version controlled, take a look at:
+1. If you want to connect a dbt project that's version controlled, take a look at:
    - [how to connect with GitHub](#github)
    - [how to connect with GitLab](#gitlab)
-3. If you want to connect to your local dbt project, then you can check [how to connect to local dbt](#local-dbt-project)
+2. If you want to connect to your local dbt project, then you can check [how to connect to local dbt](#local-dbt-project)
 
-If you're connecting a dbt cloud project, once you've connected your project, you can go ahead and launch Lightdash.
-If you're connecting a dbt project that _**isn't**_ on dbt cloud, once you've set up the connection to your dbt project,
-you'll need to continue on to [set up the connection to your warehouse](#warehouse-connection) (it's a short step, we promise 🤞).
+Once you've set up the connection to your dbt project, you'll need to continue on to [set up the connection to your warehouse](#warehouse-connection) (it's a short step, we promise 🤞).
 
 We currently support:
 
@@ -23,50 +20,11 @@ We currently support:
 2. [Postgres](#postgres)
 3. [Redshift](#redshift)
 4. [Snowflake](#snowflake)
+5. [Databricks](#databricks)
 
 If we don't support the warehouse you're using, don't be afraid to reach out to us in [GitHub](https://github.com/lightdash/lightdash)! :)
 
 ## dbt connection options
-
-----
-
-### dbt cloud
-
-#### How to get your **Account ID** and **Project ID** from your dbt cloud project
-
-Login to [dbt cloud](https://cloud.getdbt.com) and follow these instructions to get your account and project id:
-
-1. Make sure you have the correct project selected in the drop down settings
-2. Get your **Account ID**  from the URL after `/accounts/`
-3. Get your **Project ID** from the URL after `/projects/`
-
-![screenshot](../assets/dbt-cloud-account-project.png)
-
-#### How to get your **Environment ID**
-
-Use the sidebar to see all your environments. To connect to your dbt IDE you must select your development credentials with
-type `type: development`. This should be the environment you usually use when developing in the dbt cloud IDE.
-
-![screenshot](../assets/dbt-cloud-sidebar.png)
-
-![screenshot](../assets/dbt-cloud-env-select.png)
-
-Once you've located your environment follow these steps to get your environment id:
-
-1. Get your **Environment ID** from the URL after `/environments/`
-2. Check that your environment is using dbt `0.20.0` or above (you can change this in environment settings)
-
-![screenshot](../assets/dbt-cloud-env-details.png)
-
-#### How to get your **API key**
-
-You can get your personal api key by visiting your [API Access - Your profile](https://cloud.getdbt.com/#/profile/api/).
-
-:::caution It's a secret!
-
-Remember to keep your api key safe as it enables access to your dbt cloud account.
-
-:::
 
 ----
 
@@ -139,30 +97,6 @@ to your local dbt project.
 This is path to the dbt project inside the docker container.
 
 If you followed the [install instructions](./install-lightdash.mdx), then keep the value as **"/usr/app/dbt"**.
-
-----
-
-### dbt remote server
-
-:::danger Soon to be deprecated
-
-dbt is planning to deprecate the rpc server soon so we suggest using a different way to connect your dbt project.
-
-:::
-
-:::info Prerequisite
-
-You will need a dbt rpc server. You can see [how to run dbt rpc here](https://docs.getdbt.com/reference/commands/rpc/).
-
-:::
-
-#### RPC server host
-
-This is the host of the rpc server.
-
-#### RPC server port
-
-This is the port of the rpc server.
 
 ----
 
@@ -347,3 +281,45 @@ You can see more details in [dbt documentation](https://docs.getdbt.com/referenc
 
 This is Snowflake query tags parameter.
 You can see more details in [dbt documentation](https://docs.getdbt.com/reference/warehouse-profiles/snowflake-profile#query_tag).
+
+---
+
+### Databricks
+
+The credentials needed to connect to your cluster can be found in the ODBC options in your databricks account:
+
+1. Go to the `Compute` tab in the sidebar.
+2. Click the configuration tab for the cluster that you're connecting to Lightdash.
+3. Expand the `Advanced options` tab
+4. Open the `JDBC/ODBC` tab
+
+![databricks connect screenshot](./assets/databricks-connect-screenshot.png)
+
+#### Server hostname
+
+Follow the instructions above to find your ODBC connection instructions.
+
+#### HTTP Path
+
+Follow the instructions above to find your ODBC connection instructions.
+
+#### Port
+
+Follow the instructions above to find your ODBC connection instructions.
+
+#### Personal Access Token
+
+Your personal access token can be found in your user settings in databricks:
+
+1. Open `Settings` by clicking the cog ⚙️ in the sidebar and select `User settings`
+2. Click `Generate token`. You'll be asked to enter a name and expiry.
+3. Copy the token
+
+![databricks access screenshot](./assets/databricks-access-screenshot.png)
+
+
+#### Database
+
+The default database name used by dbt for this connection. In databricks/spark the database is also the schema.
+
+

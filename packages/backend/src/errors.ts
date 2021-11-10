@@ -83,6 +83,27 @@ export class MissingCatalogEntryError extends LightdashError {
         });
     }
 }
+export class NoServerRunningError extends LightdashError {
+    constructor(message: string) {
+        super({
+            message,
+            name: 'NoServerRunningError',
+            statusCode: 500,
+            data: {},
+        });
+    }
+}
+
+export class MissingWarehouseCredentialsError extends LightdashError {
+    constructor(message: string) {
+        super({
+            message,
+            name: 'MissingWarehouseCredentialsError',
+            statusCode: 400,
+            data: {},
+        });
+    }
+}
 
 export class UnexpectedServerError extends LightdashError {
     constructor(message = 'Unexpected error in Lightdash server') {
@@ -165,6 +186,28 @@ export class NotFoundError extends LightdashError {
             message,
             name: 'NotFoundError',
             statusCode: 404,
+            data: {},
+        });
+    }
+}
+
+export class WarehouseConnectionError extends LightdashError {
+    constructor(message: string) {
+        super({
+            message,
+            name: 'WarehouseConnectionError',
+            statusCode: 500, // TODO: is this a server error? could be credentials
+            data: {},
+        });
+    }
+}
+
+export class WarehouseQueryError extends LightdashError {
+    constructor(message: string) {
+        super({
+            message,
+            name: 'WarehouseQueryError',
+            statusCode: 500, // TODO: is this a server error? usually syntax error
             data: {},
         });
     }

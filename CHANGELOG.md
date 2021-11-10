@@ -3,8 +3,60 @@
 Recent and upcoming changes to lightdash
 
 ## Unreleased
+
+## [0.9.4] - 2021-11-09
+### Added
+- You can now run raw SQL queries using the SQL Runner and visualise the results as a table
+- Added support for Databricks
+
+### Fixed
+- Fixed bug in time series charts using multiple series
+
+### Removed
+- Projects connecting to dbt cloud are no longer available through the UI
+
+## [0.9.3] - 2021-11-05
+### Added
+- Charts can now be exported as an eCharts JSON definition
+
+### Fixed
+- Fixed error where dbt projects using version 0.21.0 would have missing joins
+
+## [0.9.2] - 2021-11-04
 ### Changed
-- Navigation bar was rearranged. Saved charts and dashboards can be accessed under the "Browse" menu item.
+- Lightdash requires dbt version 0.21.0 or higher
+
+### Fixed
+- Time-series charts fixed to show all values at the correct point in time
+
+### Removed
+- Authorising with Google Cloud OAuth is no longer possible with local dbt projects
+
+## [0.9.1] - 2021-11-02
+### Changed
+- Warehouse credentials are now required
+- We now fetch the catalog directly from the warehouse instead of dbt
+- Small UI/UX improvements
+
+### Fixed
+- Fixed error message when dbt cloud IDE is not open
+- Fixed postgres adapter reliability by using a pool connection
+- Fixed error when fetching null dates from Bigquery
+
+## [0.9.0] - 2021-10-26
+### Added
+- Added dashboards - users can now create, edit and delete dashboards
+
+### Changed
+- Navigation bar was rearranged. Saved charts and dashboards can be accessed under the "Browse" menu item
+- When warehouse credentials are provided, we will run sql queries by connecting directly with warehouse instead via rpc server
+
+### Fixed
+- Fixed a bug where references in table calculations were not wrapped in quotes
+- Fixed a bug where pressing "enter" in the login form would not submit form
+
+### Removed
+- Lightdash projects that connect to a remote dbt rpc server are no longer supported
 
 ## [0.8.3] - 2021-10-11
 ### Added

@@ -3,7 +3,6 @@ import { ProjectType, ProjectTypeLabels } from 'common';
 
 import DbtLocalForm from './DbtForms/DbtLocalForm';
 import GithubForm from './DbtForms/GithubForm';
-import DbtRemoteForm from './DbtForms/DbtRemoteForm';
 import DbtCloudForm from './DbtForms/DbtCloudForm';
 import GitlabForm from './DbtForms/GitlabForm';
 import SelectField from '../ReactHookForm/Select';
@@ -18,21 +17,19 @@ const DbtSettingsForm: FC<DbtSettingsFormProps> = ({ disabled, type }) => {
     const { health } = useApp();
 
     const options = useMemo(() => {
-        const enabledTypes = [
-            ProjectType.DBT_CLOUD_IDE,
-            ProjectType.GITHUB,
-            ProjectType.GITLAB,
-            ProjectType.DBT_REMOTE_SERVER,
-        ];
+        const enabledTypes = [ProjectType.GITHUB, ProjectType.GITLAB];
         if (health.data?.localDbtEnabled) {
             enabledTypes.push(ProjectType.DBT);
+        }
+        if (type === ProjectType.DBT_CLOUD_IDE) {
+            enabledTypes.push(ProjectType.DBT_CLOUD_IDE);
         }
 
         return enabledTypes.map((value) => ({
             value,
             label: ProjectTypeLabels[value],
         }));
-    }, [health]);
+    }, [health, type]);
 
     const form = useMemo(() => {
         switch (type) {
@@ -42,8 +39,6 @@ const DbtSettingsForm: FC<DbtSettingsFormProps> = ({ disabled, type }) => {
                 return <DbtCloudForm disabled={disabled} />;
             case ProjectType.GITHUB:
                 return <GithubForm disabled={disabled} />;
-            case ProjectType.DBT_REMOTE_SERVER:
-                return <DbtRemoteForm disabled={disabled} />;
             case ProjectType.GITLAB:
                 return <GitlabForm disabled={disabled} />;
             default: {

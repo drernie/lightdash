@@ -31,6 +31,7 @@ type TrackSimpleEvent = BaseTrack & {
         | 'password.updated'
         | 'invite_link.created'
         | 'invite_link.all_revoked'
+        | 'sql.executed'
         | 'query.executed';
 };
 
@@ -67,7 +68,7 @@ type ProjectEvent = BaseTrack & {
     properties: {
         projectId: string;
         projectType: ProjectType;
-        warehouseConnectionType?: WarehouseTypes;
+        warehouseConnectionType: WarehouseTypes;
     };
 };
 

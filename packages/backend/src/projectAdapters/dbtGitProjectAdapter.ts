@@ -7,8 +7,10 @@ import * as http from 'isomorphic-git/http/node';
 import { CreateWarehouseCredentials } from 'common';
 import { UnexpectedServerError } from '../errors';
 import { DbtLocalCredentialsProjectAdapter } from './dbtLocalCredentialsProjectAdapter';
+import { WarehouseClient } from '../types';
 
 export type DbtGitProjectAdapterArgs = {
+    warehouseClient: WarehouseClient;
     remoteRepositoryUrl: string;
     gitBranch: string;
     projectDirectorySubPath: string;
@@ -24,6 +26,7 @@ export class DbtGitProjectAdapter extends DbtLocalCredentialsProjectAdapter {
     branch: string;
 
     constructor({
+        warehouseClient,
         remoteRepositoryUrl,
         gitBranch,
         projectDirectorySubPath,
@@ -36,6 +39,7 @@ export class DbtGitProjectAdapter extends DbtLocalCredentialsProjectAdapter {
             projectDirectorySubPath,
         );
         super({
+            warehouseClient,
             projectDir,
             warehouseCredentials,
             port,

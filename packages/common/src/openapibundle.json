@@ -251,6 +251,120 @@
                 }
             }
         },
+        "/projects/{projectUuid}/sqlQuery": {
+            "post": {
+                "summary": "Run sql query",
+                "description": "Run a sql query on project",
+                "tags": ["project"],
+                "operationId": "runSqlQuery",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "projectUuid",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "requestBody": {
+                    "description": "Sql",
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "sql": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": ["sql"]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successfully ran sql query",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Success"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "rows": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "additionalProperties": true
+                                                    }
+                                                }
+                                            },
+                                            "required": ["rows"]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                }
+            }
+        },
+        "/projects/{projectUuid}/catalog": {
+            "get": {
+                "summary": "Get project catalog",
+                "description": "Get project catalog with all valid tables",
+                "tags": ["project"],
+                "operationId": "getProjectCatalog",
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "projectUuid",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Successfully get project catalog",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "allOf": [
+                                        {
+                                            "$ref": "#/components/schemas/Success"
+                                        },
+                                        {
+                                            "type": "object",
+                                            "properties": {
+                                                "results": {
+                                                    "$ref": "#/components/schemas/ProjectCatalog"
+                                                }
+                                            },
+                                            "required": ["results"]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "default": {
+                        "$ref": "#/components/responses/ErrorResponse"
+                    }
+                }
+            }
+        },
         "/projects/{projectUuid}/dashboards": {
             "post": {
                 "summary": "Create dashboard",
@@ -641,6 +755,30 @@
                 },
                 "required": ["expiresAt", "inviteCode"]
             },
+            "ProjectCatalog": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "object",
+                    "title": "Database",
+                    "additionalProperties": {
+                        "type": "object",
+                        "title": "Schema",
+                        "additionalProperties": {
+                            "type": "object",
+                            "title": "Table",
+                            "properties": {
+                                "description": {
+                                    "type": "string"
+                                },
+                                "sqlTable": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["sqlTable"]
+                        }
+                    }
+                }
+            },
             "DashboardListItem": {
                 "type": "object",
                 "properties": {
@@ -677,9 +815,13 @@
                 },
                 "required": ["savedChartUuid"]
             },
-            "DashboardTile": {
+            "CreateDashboardTile": {
                 "type": "object",
                 "properties": {
+                    "uuid": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
                     "type": {
                         "type": "string",
                         "enum": ["saved_chart"]
@@ -718,11 +860,28 @@
                     "tiles": {
                         "type": "array",
                         "items": {
-                            "$ref": "#/components/schemas/DashboardTile"
+                            "$ref": "#/components/schemas/CreateDashboardTile"
                         }
                     }
                 },
                 "required": ["tiles", "name", "description"]
+            },
+            "DashboardTile": {
+                "allOf": [
+                    {
+                        "$ref": "#/components/schemas/CreateDashboardTile"
+                    },
+                    {
+                        "type": "object",
+                        "properties": {
+                            "uuid": {
+                                "type": "string",
+                                "format": "uuid"
+                            }
+                        },
+                        "required": ["uuid"]
+                    }
+                ]
             },
             "Dashboard": {
                 "type": "object",
@@ -778,7 +937,7 @@
                             "tiles": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/DashboardTile"
+                                    "$ref": "#/components/schemas/CreateDashboardTile"
                                 }
                             }
                         },
@@ -797,7 +956,7 @@
                             "tiles": {
                                 "type": "array",
                                 "items": {
-                                    "$ref": "#/components/schemas/DashboardTile"
+                                    "$ref": "#/components/schemas/CreateDashboardTile"
                                 }
                             }
                         },

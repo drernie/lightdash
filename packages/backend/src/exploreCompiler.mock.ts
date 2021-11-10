@@ -1,4 +1,11 @@
-import { DimensionType, Explore, FieldType, MetricType, Source } from 'common';
+import {
+    DimensionType,
+    Explore,
+    FieldType,
+    MetricType,
+    Source,
+    SupportedDbtAdapter,
+} from 'common';
 import { UncompiledExplore } from './exploreCompiler';
 
 const sourceMock: Source = {
@@ -17,13 +24,15 @@ const sourceMock: Source = {
 };
 
 export const exploreOneEmptyTable: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {},
             metrics: {},
@@ -34,13 +43,15 @@ export const exploreOneEmptyTable: UncompiledExplore = {
 };
 
 export const exploreOneEmptyTableCompiled: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {},
             metrics: {},
@@ -51,7 +62,7 @@ export const exploreOneEmptyTableCompiled: Explore = {
 };
 
 export const exploreMissingBaseTable: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
@@ -59,7 +70,7 @@ export const exploreMissingBaseTable: UncompiledExplore = {
 };
 
 export const exploreMissingJoinTable: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [
@@ -71,6 +82,8 @@ export const exploreMissingJoinTable: UncompiledExplore = {
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {},
             metrics: {},
@@ -81,13 +94,15 @@ export const exploreMissingJoinTable: UncompiledExplore = {
 };
 
 export const exploreCircularReference: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -107,13 +122,15 @@ export const exploreCircularReference: UncompiledExplore = {
 };
 
 export const exploreTableSelfReference: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -133,13 +150,15 @@ export const exploreTableSelfReference: UncompiledExplore = {
 };
 
 export const exploreTableSelfReferenceCompiled: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -160,13 +179,15 @@ export const exploreTableSelfReferenceCompiled: Explore = {
 };
 
 export const exploreReferenceDimension: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -194,13 +215,15 @@ export const exploreReferenceDimension: UncompiledExplore = {
 };
 
 export const exploreReferenceDimensionCompiled: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -229,13 +252,15 @@ export const exploreReferenceDimensionCompiled: Explore = {
     },
 };
 export const exploreComplexReference: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -280,13 +305,15 @@ export const exploreComplexReference: UncompiledExplore = {
 };
 
 export const exploreComplexReferenceCompiled: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -335,7 +362,7 @@ export const exploreComplexReferenceCompiled: Explore = {
 };
 
 export const exploreReferenceInJoin: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [
@@ -347,6 +374,8 @@ export const exploreReferenceInJoin: UncompiledExplore = {
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -364,6 +393,8 @@ export const exploreReferenceInJoin: UncompiledExplore = {
         },
         b: {
             name: 'b',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.tableb',
             dimensions: {
                 dim1: {
@@ -391,7 +422,7 @@ export const exploreReferenceInJoin: UncompiledExplore = {
 };
 
 export const exploreReferenceInJoinCompiled: Explore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [
@@ -404,6 +435,8 @@ export const exploreReferenceInJoinCompiled: Explore = {
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -422,6 +455,8 @@ export const exploreReferenceInJoinCompiled: Explore = {
         },
         b: {
             name: 'b',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.tableb',
             dimensions: {
                 dim1: {
@@ -451,13 +486,15 @@ export const exploreReferenceInJoinCompiled: Explore = {
 };
 
 export const exploreWithMetricNumber: UncompiledExplore = {
-    targetDatabase: 'postgres',
+    targetDatabase: SupportedDbtAdapter.POSTGRES,
     name: '',
     baseTable: 'a',
     joinedTables: [],
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {
@@ -499,6 +536,8 @@ export const exploreWithMetricNumberCompiled: Explore = {
     tables: {
         a: {
             name: 'a',
+            database: 'database',
+            schema: 'schema',
             sqlTable: 'test.table',
             dimensions: {
                 dim1: {

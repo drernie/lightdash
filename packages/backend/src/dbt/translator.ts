@@ -1,5 +1,4 @@
 import {
-    DbtRpcDocsGenerateResults,
     DbtModelColumn,
     DbtModelNode,
     Dimension,
@@ -8,18 +7,21 @@ import {
     FieldType,
     LineageGraph,
     LineageNodeDependency,
-    mapColumnTypeToLightdashType,
     Metric,
     Source,
     Table,
     DbtColumnLightdashMetric,
     ExploreError,
+    DbtRawModelNode,
+    SupportedDbtAdapter,
+    DimensionType,
 } from 'common';
 import { DepGraph } from 'dependency-graph';
 import { parseWithPointers, getLocationForJsonPath } from '@stoplight/yaml';
 import fs from 'fs';
 import { compileExplore } from '../exploreCompiler';
 import { DbtError, MissingCatalogEntryError, ParseError } from '../errors';
+import { WarehouseCatalog } from '../types';
 
 const patchPathParts = (patchPath: string) => {
     const [project, ...rest] = patchPath.split('://');
@@ -40,12 +42,8 @@ const convertDimension = (
     column: DbtModelColumn,
     source?: Source,
 ): Dimension => {
-    let type;
-    if (column.meta.dimension?.type) {
-        type = column.meta.dimension.type;
-    } else if (column.data_type) {
-        type = mapColumnTypeToLightdashType(column.data_type);
-    } else {
+    const type = column.meta.dimension?.type || column.data_type;
+    if (type === undefined) {
         throw new MissingCatalogEntryError(
             `Could not automatically find type information for column "${column.name}" in dbt model "${modelName}". Check for this column in your warehouse or specify the type manually.`,
             {},
@@ -143,6 +141,8 @@ const convertTable = (
 
     return {
         name: model.name,
+        database: model.database,
+        schema: model.schema,
         sqlTable: model.relation_name,
         description: model.description || `${model.name} table`,
         dimensions,
@@ -288,6 +288,8 @@ const convertTableWithSources = (
 
     return {
         name: model.name,
+        database: model.database,
+        schema: model.schema,
         sqlTable: model.relation_name,
         description: model.description || `${model.name} table`,
         dimensions,
@@ -325,7 +327,7 @@ const modelGraph = (
 export const convertExplores = async (
     models: DbtModelNode[],
     loadSources: boolean,
-    adapterType: string,
+    adapterType: SupportedDbtAdapter,
 ): Promise<(Explore | ExploreError)[]> => {
     const graph = modelGraph(models);
     const [tables, exploreErrors] = models.reduce(
@@ -365,7 +367,11 @@ export const convertExplores = async (
             return compileExplore({
                 name: model.name,
                 baseTable: model.name,
-                joinedTables: (model.meta.joins || []).map((join) => ({
+                joinedTables: (
+                    model.config?.meta?.joins || // Config block takes priority, then meta block
+                    model.meta.joins ||
+                    []
+                ).map((join) => ({
                     table: join.join,
                     sqlOn: join.sql_on,
                 })),
@@ -382,54 +388,77 @@ export const convertExplores = async (
     return [...explores, ...exploreErrors];
 };
 
-export const attachTypesToModels = async (
+export const normaliseModelDatabase = (
+    model: DbtRawModelNode,
+    targetWarehouse: SupportedDbtAdapter,
+): DbtModelNode => {
+    switch (targetWarehouse) {
+        case SupportedDbtAdapter.POSTGRES:
+        case SupportedDbtAdapter.BIGQUERY:
+        case SupportedDbtAdapter.SNOWFLAKE:
+        case SupportedDbtAdapter.REDSHIFT:
+            if (model.database === null) {
+                throw new ParseError(
+                    `Cannot parse dbt model '${model.unique_id}' because the database field has null value.`,
+                    {},
+                );
+            }
+            return { ...model, database: model.database };
+        case SupportedDbtAdapter.SPARK:
+            return { ...model, database: 'SPARK' };
+        default:
+            const never: never = targetWarehouse;
+            throw new ParseError(
+                `Cannot recognise warehouse ${targetWarehouse}`,
+                {},
+            );
+    }
+};
+
+export const attachTypesToModels = (
     models: DbtModelNode[],
-    catalog: DbtRpcDocsGenerateResults,
+    warehouseCatalog: WarehouseCatalog,
     throwOnMissingCatalogEntry: boolean = true,
-): Promise<DbtModelNode[]> => {
-    // Check that all models appear in the catalog
-    models.forEach((model) => {
-        if (!(model.unique_id in catalog.nodes) && throwOnMissingCatalogEntry) {
+): DbtModelNode[] => {
+    // Check that all models appear in the warehouse
+    models.forEach(({ database, schema, name }) => {
+        if (
+            (!(database in warehouseCatalog) ||
+                !(schema in warehouseCatalog[database]) ||
+                !(name in warehouseCatalog[database][schema])) &&
+            throwOnMissingCatalogEntry
+        ) {
             throw new MissingCatalogEntryError(
-                `Model "${model.unique_id}" was expected in your target warehouse at "${model.database}.${model.schema}.${model.name}". Does the table exist in your target data warehouse?`,
+                `Model "${name}" was expected in your target warehouse at "${database}.${schema}.${name}". Does the table exist in your target data warehouse?`,
                 {},
             );
         }
     });
 
-    // get column types and use lower case column names
-    const catalogColumnTypes = Object.fromEntries(
-        Object.entries(catalog.nodes).map(([node_id, node]) => {
-            const columns = Object.fromEntries(
-                Object.entries(node.columns).map(([column_name, column]) => [
-                    column_name.toLowerCase(),
-                    column.type,
-                ]),
-            );
-            return [node_id, columns];
-        }),
-    );
-
     const getType = (
-        model: DbtModelNode,
+        { database, schema, name }: DbtModelNode,
         columnName: string,
-    ): string | undefined => {
-        try {
-            const columnType = catalogColumnTypes[model.unique_id][columnName];
-            return columnType;
-        } catch (e) {
-            if (throwOnMissingCatalogEntry) {
-                throw new MissingCatalogEntryError(
-                    `Column "${columnName}" from model "${model.name}" does not exist.\n "${columnName}.${model.name}" was not found in your target warehouse at ${model.database}.${model.schema}.${model.name}. Try rerunning dbt to update your warehouse.`,
-                    {},
-                );
-            }
-            return undefined;
+    ): DimensionType | undefined => {
+        if (
+            database in warehouseCatalog &&
+            schema in warehouseCatalog[database] &&
+            name in warehouseCatalog[database][schema] &&
+            columnName in warehouseCatalog[database][schema][name]
+        ) {
+            return warehouseCatalog[database][schema][name][columnName];
         }
+
+        if (throwOnMissingCatalogEntry) {
+            throw new MissingCatalogEntryError(
+                `Column "${columnName}" from model "${name}" does not exist.\n "${columnName}.${name}" was not found in your target warehouse at ${database}.${schema}.${name}. Try rerunning dbt to update your warehouse.`,
+                {},
+            );
+        }
+        return undefined;
     };
 
     // Update the dbt models with type info
-    const typedModels = models.map((model) => ({
+    return models.map((model) => ({
         ...model,
         columns: Object.fromEntries(
             Object.entries(model.columns).map(([column_name, column]) => [
@@ -438,5 +467,14 @@ export const attachTypesToModels = async (
             ]),
         ),
     }));
-    return typedModels;
 };
+
+export const getSchemaStructureFromDbtModels = (
+    dbtModels: DbtModelNode[],
+): { database: string; schema: string; table: string; columns: string[] }[] =>
+    dbtModels.map(({ database, schema, name, columns }) => ({
+        database,
+        schema,
+        table: name,
+        columns: Object.keys(columns),
+    }));

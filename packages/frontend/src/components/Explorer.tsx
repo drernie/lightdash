@@ -5,6 +5,7 @@ import {
     Card,
     Collapse,
     FormGroup,
+    H3,
     H5,
     Menu,
     MenuItem,
@@ -14,9 +15,9 @@ import {
 import { Popover2 } from '@blueprintjs/popover2';
 import { DBChartTypes, SavedQuery } from 'common';
 import EChartsReact from 'echarts-for-react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import FiltersForm from '../filters';
-import { ResultsTable } from './ResultsTable';
+import { ExplorerResults } from './ExplorerResults';
 import { SimpleChart } from './SimpleChart';
 import { RenderedSql } from './RenderedSql';
 import { RefreshServerButton } from './RefreshServerButton';
@@ -25,16 +26,20 @@ import { ChartConfigPanel } from './ChartConfigPanel';
 import { useChartConfig } from '../hooks/useChartConfig';
 import { ChartDownloadMenu } from './ChartDownload';
 import { useExplorer } from '../providers/ExplorerProvider';
-import { CreateSavedQueryModal } from './SaveQueryModal';
+import CreateSavedQueryModal from './SavedQueries/CreateSavedQueryModal';
 import { useAddVersionMutation, useSavedQuery } from '../hooks/useSavedQuery';
 import { Section } from '../providers/TrackingProvider';
 import { SectionName } from '../types/Events';
+import SavedQueryForm from './SavedQueries/SavedQueryForm';
+import { useQueryResults } from '../hooks/useQueryResults';
+import { BigButton } from './common/BigButton';
 
 interface Props {
     savedQueryUuid?: string;
 }
 
 export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
+    const { projectUuid } = useParams<{ projectUuid: string }>();
     const [isQueryModalOpen, setIsQueryModalOpen] = useState<boolean>(false);
     const chartRef = useRef<EChartsReact>(null);
     const location = useLocation<{ fromExplorer?: boolean } | undefined>();
@@ -53,8 +58,13 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
         },
         actions: { setRowLimit: setResultsRowLimit },
     } = useExplorer();
-    const chartConfig = useChartConfig(savedQueryUuid);
+    const queryResults = useQueryResults();
     const { data } = useSavedQuery({ id: savedQueryUuid });
+    const chartConfig = useChartConfig(
+        tableName,
+        queryResults.data,
+        data?.chartConfig.seriesLayout,
+    );
     const update = useAddVersionMutation();
 
     const [filterIsOpen, setFilterIsOpen] = useState<boolean>(false);
@@ -119,14 +129,25 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
                         alignItems: 'center',
                     }}
                 >
-                    <div style={{ flex: 1, justifyContent: 'flex-start' }}>
+                    <H3
+                        style={{
+                            flex: 1,
+                            justifyContent: 'flex-start',
+                            margin: 0,
+                        }}
+                    >
                         {chartName}
-                    </div>
+                    </H3>
                     <RefreshButton />
                     <RefreshServerButton />
                     <Popover2
                         content={
                             <Menu>
+                                <MenuItem
+                                    icon="cog"
+                                    text="Project settings"
+                                    href={`/projects/${projectUuid}/settings`}
+                                />
                                 {savedQueryUuid && (
                                     <MenuItem
                                         icon="saved"
@@ -144,7 +165,7 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
                         placement="bottom"
                         disabled={!tableName}
                     >
-                        <Button
+                        <BigButton
                             icon="more"
                             disabled={!tableName}
                             style={{
@@ -258,12 +279,15 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
                         </ButtonGroup>
                     )}
                 </div>
-                <Collapse isOpen={vizIsOpen}>
-                    <SimpleChart
-                        chartRef={chartRef}
-                        chartType={activeVizTab}
-                        chartConfig={chartConfig}
-                    />
+                <Collapse className="explorer-chart" isOpen={vizIsOpen}>
+                    <div style={{ height: '300px' }}>
+                        <SimpleChart
+                            isLoading={queryResults.isLoading}
+                            chartRef={chartRef}
+                            chartType={activeVizTab}
+                            chartConfig={chartConfig}
+                        />
+                    </div>
                 </Collapse>
             </Card>
             <div style={{ paddingTop: '10px' }} />
@@ -311,7 +335,7 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
                     )}
                 </div>
                 <Collapse isOpen={resultsIsOpen}>
-                    <ResultsTable />
+                    <ExplorerResults />
                 </Collapse>
             </Card>
             <div style={{ paddingTop: '10px' }} />
@@ -340,8 +364,9 @@ export const Explorer: FC<Props> = ({ savedQueryUuid }) => {
             {queryData && (
                 <CreateSavedQueryModal
                     isOpen={isQueryModalOpen}
-                    queryData={queryData}
+                    savedData={queryData}
                     onClose={() => setIsQueryModalOpen(false)}
+                    ModalContent={SavedQueryForm}
                 />
             )}
         </>

@@ -18,14 +18,66 @@ export const validateEmail = (email: string): boolean => {
     return re.test(String(email).toLowerCase());
 };
 
-export const USER_SEED: CreateInitialUserArgs = {
-    firstName: 'Jane',
-    lastName: 'Doe',
-    organizationName: 'Jaffle Shop',
+export type SqlResultsRow = { [columnName: string]: any };
+export type SqlResultsField = { name: string; type: string }; // TODO: standardise column types
+export type SqlQueryResults = {
+    fields: SqlResultsField[]; // TODO: standard column types
+    rows: SqlResultsRow[];
+};
+
+export function hexToRGB(hex: string, alpha: number | undefined): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    if (alpha !== undefined) {
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+    return `rgb(${r}, ${g}, ${b})`;
+}
+
+export enum ProjectType {
+    DBT = 'dbt',
+    DBT_CLOUD_IDE = 'dbt_cloud_ide',
+    GITHUB = 'github',
+    GITLAB = 'gitlab',
+}
+
+// Seeds
+export const SEED_ORGANIZATION = {
+    organization_uuid: '172a2270-000f-42be-9c68-c4752c23ae51',
+    organization_name: 'Jaffle Shop',
+};
+export const SEED_USER = {
+    user_uuid: 'b264d83a-9000-426a-85ec-3f9c20f368ce',
+    first_name: 'Jane',
+    last_name: 'Doe',
+    is_marketing_opted_in: true,
+    is_tracking_anonymized: false,
+};
+export const SEED_EMAIL = {
+    user_id: 1,
     email: 'demo@lightdash.com',
+    is_primary: true,
+};
+export const SEED_PASSWORD = {
+    user_id: 1,
     password: 'demo_password!',
-    isMarketingOptedIn: true,
-    isTrackingAnonymized: false,
+};
+export const SEED_ORGANIZATION_MEMBERSHIP = {
+    user_id: 1,
+    organization_id: 1,
+};
+export const SEED_PROJECT = {
+    project_uuid: '3675b69e-8324-4110-bdca-059031aa8da3',
+    organization_id: 1,
+    name: 'Jaffle shop',
+    dbt_connection_type: ProjectType.DBT,
+    dbt_connection: null,
+};
+export const SEED_SPACE = {
+    project_id: 1,
+    name: SEED_PROJECT.name,
 };
 
 export type ArgumentsOf<F extends Function> = F extends (
@@ -39,7 +91,7 @@ export type Explore = {
     baseTable: string; // Must match a tableName in tables
     joinedTables: CompiledExploreJoin[]; // Must match a tableName in tables
     tables: { [tableName: string]: CompiledTable }; // All tables in this explore
-    targetDatabase: string; // Type of target database e.g. postgres/redshift/bigquery/snowflake
+    targetDatabase: SupportedDbtAdapter; // Type of target database e.g. postgres/redshift/bigquery/snowflake/spark
 };
 
 export type InlineError = {
@@ -68,13 +120,15 @@ export type SummaryExplore =
     | Pick<Explore, 'name'>
     | Pick<ExploreError, 'name' | 'errors'>;
 
-export type PartialTable = {
+export type TableBase = {
     name: string; // Must be sql friendly (a-Z, 0-9, _)
     description?: string; // Optional description of table
+    database: string;
+    schema: string;
     sqlTable: string; // The sql identifier for the table
 };
 
-export type Table = PartialTable & {
+export type Table = TableBase & {
     dimensions: { [fieldName: string]: Dimension }; // Field names must be unique across dims and metrics
     metrics: { [fieldName: string]: Metric }; //
     lineageGraph: LineageGraph; // DAG structure representing the lineage of the table
@@ -99,7 +153,7 @@ type SourcePosition = {
     character: number;
 };
 
-export type CompiledTable = PartialTable & {
+export type CompiledTable = TableBase & {
     dimensions: Record<string, CompiledDimension>;
     metrics: Record<string, CompiledMetric>;
     lineageGraph: LineageGraph;
@@ -342,99 +396,6 @@ export const filterableDimensionsOnly = (
     dimensions: Dimension[],
 ): FilterableDimension[] => dimensions.filter(isFilterableDimension);
 
-const lightdashTypeMap: { [columnType: string]: DimensionType } = {
-    INTEGER: DimensionType.NUMBER,
-    INT32: DimensionType.NUMBER,
-    INT64: DimensionType.NUMBER,
-    FLOAT: DimensionType.NUMBER,
-    FLOAT32: DimensionType.NUMBER,
-    FLOAT64: DimensionType.NUMBER,
-    NUMERIC: DimensionType.NUMBER,
-    BOOLEAN: DimensionType.BOOLEAN,
-    STRING: DimensionType.STRING,
-    TIMESTAMP: DimensionType.TIMESTAMP,
-    DATETIME: DimensionType.STRING,
-    DATE: DimensionType.DATE,
-    TIME: DimensionType.STRING,
-    BOOL: DimensionType.BOOLEAN,
-    ARRAY: DimensionType.STRING,
-    GEOGRAPHY: DimensionType.STRING,
-    NUMBER: DimensionType.NUMBER,
-    DECIMAL: DimensionType.NUMBER,
-    INT: DimensionType.NUMBER,
-    BIGINT: DimensionType.NUMBER,
-    SMALLINT: DimensionType.NUMBER,
-    FLOAT4: DimensionType.NUMBER,
-    FLOAT8: DimensionType.NUMBER,
-    DOUBLE: DimensionType.NUMBER,
-    'DOUBLE PRECISION': DimensionType.NUMBER,
-    REAL: DimensionType.NUMBER,
-    VARCHAR: DimensionType.STRING,
-    CHAR: DimensionType.STRING,
-    CHARACTER: DimensionType.STRING,
-    TEXT: DimensionType.STRING,
-    BINARY: DimensionType.STRING,
-    VARBINARY: DimensionType.STRING,
-    TIMESTAMP_NTZ: DimensionType.TIMESTAMP,
-    VARIANT: DimensionType.STRING,
-    OBJECT: DimensionType.STRING,
-    INT2: DimensionType.NUMBER,
-    INT4: DimensionType.NUMBER,
-    INT8: DimensionType.NUMBER,
-    NCHAR: DimensionType.STRING,
-    BPCHAR: DimensionType.STRING,
-    'CHARACTER VARYING': DimensionType.STRING,
-    NVARCHAR: DimensionType.STRING,
-    'TIMESTAMP WITHOUT TIME ZONE': DimensionType.TIMESTAMP,
-    GEOMETRY: DimensionType.STRING,
-    'TIME WITHOUT TIME ZONE': DimensionType.STRING,
-    XML: DimensionType.STRING,
-    UUID: DimensionType.STRING,
-    PG_LSN: DimensionType.STRING,
-    MACADDR: DimensionType.STRING,
-    JSON: DimensionType.STRING,
-    JSONB: DimensionType.STRING,
-    CIDR: DimensionType.STRING,
-    INET: DimensionType.STRING,
-    MONEY: DimensionType.NUMBER,
-    SMALLSERIAL: DimensionType.NUMBER,
-    SERIAL2: DimensionType.NUMBER,
-    SERIAL: DimensionType.NUMBER,
-    SERIAL4: DimensionType.NUMBER,
-    BIGSERIAL: DimensionType.NUMBER,
-    SERIAL8: DimensionType.NUMBER,
-};
-// Map native database types to sensible dimension types in lightdash
-// Used to autogenerate explore tables from database table schemas
-export const mapColumnTypeToLightdashType = (
-    columnType: string,
-): DimensionType => lightdashTypeMap[columnType.toUpperCase()] || 'string';
-
-// THESE ALL GET DEFAULT CONVERTED TO STRINGS (SO NO SPECIAL TREATMENT)
-// # TIMETZ not supported
-// # TIME WITH TIME ZONE not supported
-// # TIMESTAMP_LTZ not supported (see https://docs.looker.com/reference/field-params/dimension_group)
-//     # TIMESTAMP_TZ not supported (see https://docs.looker.com/reference/field-params/dimension_group)
-//     # HLLSKETCH not supported
-// # TIMESTAMPTZ not supported
-// # TIMESTAMP WITH TIME ZONE not supported
-// # BIT, BIT VARYING, VARBIT not supported
-// # BOX not supported
-// # BYTEA not supported
-// # CIRCLE not supported
-// # INTERVAL not supported
-// # LINE not supported
-// # LSEG not supported
-// # PATH not supported
-// # POINT not supported
-// # POLYGON not supported
-// # TSQUERY, TSVECTOR not supported
-// # TIMESTAMPTZ not supported
-// # TIMESTAMP WITH TIME ZONE not supported
-// # TIMETZ not supported
-// # HLLSKETCH not supported
-// # TIME WITH TIME ZONE not supported
-
 const capitalize = (word: string): string =>
     word ? `${word.charAt(0).toUpperCase()}${word.slice(1)}` : '';
 
@@ -453,14 +414,22 @@ export const snakeCaseName = (text: string): string =>
 export const hasSpecialCharacters = (text: string) => /[^a-zA-Z ]/g.test(text);
 
 // DBT CONFIG
+export enum SupportedDbtAdapter {
+    BIGQUERY = 'bigquery',
+    SPARK = 'spark',
+    SNOWFLAKE = 'snowflake',
+    REDSHIFT = 'redshift',
+    POSTGRES = 'postgres',
+}
 export type DbtNode = {
     unique_id: string;
     resource_type: string;
 };
-export type DbtModelNode = DbtNode & {
+export type DbtRawModelNode = DbtNode & {
     columns: { [name: string]: DbtModelColumn };
+    config?: { meta?: DbtModelMetadata };
     meta: DbtModelMetadata;
-    database: string;
+    database: string | null;
     schema: string;
     name: string;
     relation_name: string;
@@ -469,6 +438,9 @@ export type DbtModelNode = DbtNode & {
     root_path: string;
     patch_path: string | null;
 };
+export type DbtModelNode = DbtRawModelNode & {
+    database: string;
+};
 type DbtTableDependency = {
     nodes: string[];
 };
@@ -476,7 +448,7 @@ export type DbtModelColumn = {
     name: string;
     description?: string;
     meta: DbtColumnMetadata;
-    data_type?: string;
+    data_type?: DimensionType;
 };
 
 // CUSTOM LIGHTDASH CONFIG IN DBT
@@ -527,6 +499,30 @@ export type ApiQueryResponse =
     | {
           status: 'ok';
           results: ApiQueryResults;
+      };
+
+export type ApiSqlQueryResults = {
+    rows: { [col: string]: any }[];
+};
+export type ApiSqlQueryResponse =
+    | ApiError
+    | {
+          status: 'ok';
+          results: ApiSqlQueryResults;
+      };
+
+export type ProjectCatalog = {
+    [database: string]: {
+        [schema: string]: {
+            [table: string]: Pick<TableBase, 'description' | 'sqlTable'>;
+        };
+    };
+};
+export type ApiCatalogResponse =
+    | ApiError
+    | {
+          status: 'ok';
+          results: ProjectCatalog;
       };
 
 export type ApiCompiledQueryResults = string;
@@ -671,6 +667,7 @@ export type ApiUpdateWarehouseConnectionResponse =
 
 export type ApiResults =
     | ApiQueryResults
+    | ApiSqlQueryResults
     | ApiCompiledQueryResults
     | ApiExploresResults
     | ApiExploreResults
@@ -684,10 +681,14 @@ export type ApiResults =
     | OrganizationProject[]
     | Project
     | WarehouseCredentials
-    | OrganizationUser[];
+    | OrganizationUser[]
+    | ProjectCatalog
+    | Dashboard;
 
 export type ApiResponse =
     | ApiQueryResponse
+    | ApiSqlQueryResponse
+    | ApiCatalogResponse
     | ApiCompiledQueryResponse
     | ApiExploresResponse
     | ApiExploreResponse
@@ -708,6 +709,8 @@ export enum LightdashMode {
     PR = 'pr',
     CLOUD_BETA = 'cloud_beta',
 }
+export const isLightdashMode = (x: string): x is LightdashMode =>
+    Object.values<string>(LightdashMode).includes(x);
 
 export enum LightdashInstallType {
     DOCKER_IMAGE = 'docker_image',
@@ -743,7 +746,7 @@ export interface DbtCatalogNode {
 
 export interface DbtCatalogNodeMetadata {
     type: string;
-    database: string;
+    database: string | null;
     schema: string;
     name: string;
     comment?: string;
@@ -779,20 +782,30 @@ export const isDbtRpcDocsGenerateResults = (
 
 export interface DbtManifest {
     nodes: Record<string, DbtNode>;
-    metadata: DbtManifestMetadata;
+    metadata: DbtRawManifestMetadata;
 }
 
-export interface DbtManifestMetadata {
+export interface DbtRawManifestMetadata {
     dbt_schema_version: string;
     generated_at: string;
     adapter_type: string;
 }
-const isDbtManifestMetadata = (x: any): x is DbtManifestMetadata =>
+
+export interface DbtManifestMetadata extends DbtRawManifestMetadata {
+    adapter_type: SupportedDbtAdapter;
+}
+const isDbtRawManifestMetadata = (x: any): x is DbtRawManifestMetadata =>
     typeof x === 'object' &&
     x !== null &&
     'dbt_schema_version' in x &&
     'generated_at' in x &&
     'adapter_type' in x;
+
+export const isSupportedDbtAdapter = (
+    x: DbtRawManifestMetadata,
+): x is DbtManifestMetadata =>
+    isDbtRawManifestMetadata(x) &&
+    Object.values<string>(SupportedDbtAdapter).includes(x.adapter_type);
 
 export interface DbtRpcGetManifestResults {
     manifest: DbtManifest;
@@ -805,7 +818,7 @@ export const isDbtRpcManifestResults = (
     results.manifest !== null &&
     'nodes' in results.manifest &&
     'metadata' in results.manifest &&
-    isDbtManifestMetadata(results.manifest.metadata);
+    isDbtRawManifestMetadata(results.manifest.metadata);
 
 export interface DbtRpcCompileResults {
     results: { node: DbtNode }[];
@@ -901,6 +914,7 @@ export enum WarehouseTypes {
     POSTGRES = 'postgres',
     REDSHIFT = 'redshift',
     SNOWFLAKE = 'snowflake',
+    DATABRICKS = 'databricks',
 }
 
 export type CreateBigqueryCredentials = {
@@ -920,6 +934,7 @@ export const sensitiveCredentialsFieldNames = [
     'user',
     'password',
     'keyfileContents',
+    'personalAccessToken',
 ] as const;
 
 export const sensitiveDbtCredentialsFieldNames = [
@@ -932,6 +947,20 @@ export type SensitiveCredentialsFieldNames =
 
 export type BigqueryCredentials = Omit<
     CreateBigqueryCredentials,
+    SensitiveCredentialsFieldNames
+>;
+
+export type CreateDatabricksCredentials = {
+    type: WarehouseTypes.DATABRICKS;
+    serverHostName: string;
+    port: number;
+    database: string;
+    personalAccessToken: string;
+    httpPath: string;
+};
+
+export type DatabricksCredentials = Omit<
+    CreateDatabricksCredentials,
     SensitiveCredentialsFieldNames
 >;
 
@@ -996,28 +1025,21 @@ export type CreateWarehouseCredentials =
     | CreateRedshiftCredentials
     | CreateBigqueryCredentials
     | CreatePostgresCredentials
-    | CreateSnowflakeCredentials;
+    | CreateSnowflakeCredentials
+    | CreateDatabricksCredentials;
 
 export type WarehouseCredentials =
     | SnowflakeCredentials
     | RedshiftCredentials
     | PostgresCredentials
-    | BigqueryCredentials;
-
-export enum ProjectType {
-    DBT = 'dbt',
-    DBT_REMOTE_SERVER = 'dbt_remote_server',
-    DBT_CLOUD_IDE = 'dbt_cloud_ide',
-    GITHUB = 'github',
-    GITLAB = 'gitlab',
-}
+    | BigqueryCredentials
+    | DatabricksCredentials;
 
 export const ProjectTypeLabels: Record<ProjectType, string> = {
     [ProjectType.DBT]: 'dbt local server',
     [ProjectType.DBT_CLOUD_IDE]: 'dbt cloud',
     [ProjectType.GITHUB]: 'Github',
     [ProjectType.GITLAB]: 'GitLab',
-    [ProjectType.DBT_REMOTE_SERVER]: 'dbt remote server',
 };
 
 export interface DbtProjectConfigBase {
@@ -1030,12 +1052,6 @@ export interface DbtLocalProjectConfig extends DbtProjectConfigBase {
     profiles_dir?: string;
     project_dir: string;
     target?: string;
-}
-
-export interface DbtRemoteProjectConfig extends DbtProjectConfigBase {
-    type: ProjectType.DBT_REMOTE_SERVER;
-    rpc_server_host: string;
-    rpc_server_port: number;
 }
 
 export interface DbtCloudIDEProjectConfig extends DbtProjectConfigBase {
@@ -1064,7 +1080,6 @@ export interface DbtGitlabProjectConfig extends DbtProjectConfigBase {
 
 export type DbtProjectConfig =
     | DbtLocalProjectConfig
-    | DbtRemoteProjectConfig
     | DbtCloudIDEProjectConfig
     | DbtGithubProjectConfig
     | DbtGitlabProjectConfig;
@@ -1082,18 +1097,19 @@ export type Project = {
 };
 
 export type CreateProject = Omit<Project, 'projectUuid'> & {
-    warehouseConnection?: CreateWarehouseCredentials;
+    warehouseConnection: CreateWarehouseCredentials;
 };
 
 export type UpdateProject = Omit<Project, 'projectUuid'> & {
-    warehouseConnection?: CreateWarehouseCredentials;
+    warehouseConnection: CreateWarehouseCredentials;
 };
 
 export enum DashboardTileTypes {
     SAVED_CHART = 'saved_chart',
 }
 
-type DashboardTileBase = {
+type CreateDashboardTileBase = {
+    uuid?: string;
     type: DashboardTileTypes;
     x: number;
     y: number;
@@ -1101,17 +1117,30 @@ type DashboardTileBase = {
     w: number;
 };
 
-type DashboardChartTile = DashboardTileBase & {
+type DashboardTileBase = Required<CreateDashboardTileBase>;
+
+type DashboardChartTileProperties = {
     type: DashboardTileTypes.SAVED_CHART;
     properties: {
         savedChartUuid: string | null;
     };
 };
 
-export type Dashboard = {
-    uuid: string;
+export type CreateDashboardChartTile = CreateDashboardTileBase &
+    DashboardChartTileProperties;
+export type DashboardChartTile = DashboardTileBase &
+    DashboardChartTileProperties;
+
+export type CreateDashboard = {
     name: string;
     description?: string;
+    tiles: CreateDashboardChartTile[];
+};
+
+export type Dashboard = {
+    name: string;
+    description?: string;
+    uuid: string;
     updatedAt: Date;
     tiles: DashboardChartTile[];
 };
@@ -1122,12 +1151,11 @@ export type DashboardBasicDetails = Pick<
 >;
 
 export type DashboardUnversionedFields = Pick<
-    Dashboard,
+    CreateDashboard,
     'name' | 'description'
 >;
-export type DashboardVersionedFields = Pick<Dashboard, 'tiles'>;
+export type DashboardVersionedFields = Pick<CreateDashboard, 'tiles'>;
 
-export type CreateDashboard = Pick<Dashboard, 'name' | 'description' | 'tiles'>;
 export type UpdateDashboard =
     | DashboardUnversionedFields
     | DashboardVersionedFields

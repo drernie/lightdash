@@ -18,6 +18,7 @@ enum DownloadType {
     PNG = 'PNG',
     SVG = 'SVG',
     PDF = 'PDF',
+    JSON = 'JSON',
 }
 
 type ChartDownloadMenuProps = {
@@ -69,6 +70,17 @@ function downloadImage(base64: string) {
     document.body.removeChild(link);
 }
 
+function downloadJson(object: Object) {
+    const data = JSON.stringify(object);
+    const blob = new Blob([data], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${FILE_NAME}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
 function downloadPdf(base64: string, width: number, height: number) {
     const padding: number = 20;
     let doc: JsPDF;
@@ -87,9 +99,9 @@ function downloadPdf(base64: string, width: number, height: number) {
     doc.save(FILE_NAME);
 }
 
-const Content: React.FC<Pick<ChartDownloadMenuProps, 'chartRef'>> = ({
-    chartRef,
-}) => {
+export const ChartDownloadOptions: React.FC<
+    Pick<ChartDownloadMenuProps, 'chartRef'>
+> = ({ chartRef }) => {
     const [type, setType] = useState<DownloadType>(DownloadType.JPEG);
 
     const onDownload = useCallback(async () => {
@@ -122,8 +134,13 @@ const Content: React.FC<Pick<ChartDownloadMenuProps, 'chartRef'>> = ({
             case DownloadType.PNG:
                 downloadImage(await base64SvgToBase64Image(svgBase64, width));
                 break;
-            default:
+            case DownloadType.JSON:
+                downloadJson(echartsInstance.getOption());
+                break;
+            default: {
+                const never: never = type;
                 throw new Error(`Unexpected download type: ${type}`);
+            }
         }
     }, [chartRef, type]);
 
@@ -174,7 +191,7 @@ export const ChartDownloadMenu: React.FC<ChartDownloadMenuProps> = ({
     const [isOpen, setIsOpen] = useState(false);
     return (
         <Popover2
-            content={<Content chartRef={chartRef} />}
+            content={<ChartDownloadOptions chartRef={chartRef} />}
             popoverClassName={Classes.POPOVER2_CONTENT_SIZING}
             isOpen={isOpen}
             onInteraction={setIsOpen}
