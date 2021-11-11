@@ -1,1 +1,9 @@
 version: '1.0'
+
+projects:
+  - type: 'dbt'
+    name: nauto_dbt
+    project_dir: /Users/nauto/Developer/dbt
+    profiles_dir: /Users/nauto/.dbt/profiles.yml
+    rpc_server_port: 8580
+    target: dev # [Optional] Defaults to dbt profile target
