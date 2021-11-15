@@ -1,6 +1,6 @@
 {
     "name": "frontend",
-    "version": "0.9.4",
+    "version": "0.10.1",
     "private": true,
     "proxy": "http://localhost:8080",
     "dependencies": {
@@ -25,7 +25,7 @@
         "@types/styled-components": "^5.1.15",
         "@types/uuid": "^8.3.0",
         "ace-builds": "^1.4.12",
-        "common": "^0.9.4",
+        "common": "^0.10.1",
         "dagre": "^0.8.5",
         "echarts": "^5.1.1",
         "echarts-for-react": "^3.0.1",
@@ -93,6 +93,7 @@
         "eslint-plugin-prettier": "^3.4.0",
         "eslint-plugin-react": "^7.24.0",
         "eslint-plugin-react-hooks": "^4.2.0",
-        "prettier": "^2.3.2"
+        "prettier": "^2.3.2",
+        "prettier-plugin-organize-imports": "^2.3.4"
     }
 }

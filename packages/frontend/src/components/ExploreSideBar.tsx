@@ -9,20 +9,20 @@ import {
     NonIdealState,
     Text,
 } from '@blueprintjs/core';
-import React, { useState } from 'react';
 import { friendlyName } from 'common';
+import React, { useState } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import ExploreTree from './ExploreTree';
-import { useExplores } from '../hooks/useExplores';
 import { useExplore } from '../hooks/useExplore';
-import { LineageButton } from './LineageButton';
-import AboutFooter from './AboutFooter';
-import { useExplorer } from '../providers/ExplorerProvider';
+import { useExplores } from '../hooks/useExplores';
 import { useApp } from '../providers/AppProvider';
-import { ShowErrorsButton } from './ShowErrorsButton';
+import { useExplorer } from '../providers/ExplorerProvider';
 import { Section } from '../providers/TrackingProvider';
 import { SectionName } from '../types/Events';
+import AboutFooter from './AboutFooter';
 import { ExploreMenuItem } from './ExploreMenuItem';
+import ExploreTree from './ExploreTree';
+import { LineageButton } from './LineageButton';
+import { ShowErrorsButton } from './ShowErrorsButton';
 
 const SideBarLoadingState = () => (
     <Menu large style={{ flex: 1 }}>
@@ -37,7 +37,7 @@ const SideBarLoadingState = () => (
 const BasePanel = () => {
     const history = useHistory();
     const { projectUuid } = useParams<{ projectUuid: string }>();
-    const exploresResult = useExplores();
+    const exploresResult = useExplores(true);
     const [showChangeExploreConfirmation, setShowChangeExploreConfirmation] =
         useState(false);
     const [selectedExploreName, setSelectedExploreName] = useState('');

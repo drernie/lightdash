@@ -1,21 +1,20 @@
 import { CreateWarehouseCredentials } from 'common';
-import tempy from 'tempy';
+import { writeFileSync } from 'fs';
 import * as fspromises from 'fs/promises';
 import * as path from 'path';
-import { writeFileSync } from 'fs';
+import tempy from 'tempy';
 import {
     LIGHTDASH_PROFILE_NAME,
     LIGHTDASH_TARGET_NAME,
     profileFromCredentials,
 } from '../dbt/profiles';
-import { DbtLocalProjectAdapter } from './dbtLocalProjectAdapter';
 import { WarehouseClient } from '../types';
+import { DbtLocalProjectAdapter } from './dbtLocalProjectAdapter';
 
 type DbtLocalCredentialsProjectAdapterArgs = {
     warehouseClient: WarehouseClient;
     projectDir: string;
     warehouseCredentials: CreateWarehouseCredentials;
-    port: number;
 };
 
 export class DbtLocalCredentialsProjectAdapter extends DbtLocalProjectAdapter {
@@ -25,7 +24,6 @@ export class DbtLocalCredentialsProjectAdapter extends DbtLocalProjectAdapter {
         warehouseClient,
         projectDir,
         warehouseCredentials,
-        port,
     }: DbtLocalCredentialsProjectAdapterArgs) {
         const profilesDir = tempy.directory();
         const profilesFilename = path.join(profilesDir, 'profiles.yml');
@@ -38,7 +36,6 @@ export class DbtLocalCredentialsProjectAdapter extends DbtLocalProjectAdapter {
             profileName: LIGHTDASH_PROFILE_NAME,
             profilesDir,
             projectDir,
-            port,
             environment,
         });
         this.profilesDir = profilesDir;

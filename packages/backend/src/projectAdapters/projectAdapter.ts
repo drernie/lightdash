@@ -1,15 +1,14 @@
-import getPort from 'get-port';
 import {
     CreateWarehouseCredentials,
     DbtProjectConfig,
     ProjectType,
 } from 'common';
+import { warehouseClientFromCredentials } from '../services/warehouseClients/warehouseClientFromCredentials';
 import { ProjectAdapter } from '../types';
 import { DbtCloudIdeProjectAdapter } from './dbtCloudIdeProjectAdapter';
 import { DbtGithubProjectAdapter } from './dbtGithubProjectAdapter';
 import { DbtGitlabProjectAdapter } from './dbtGitlabProjectAdapter';
 import { DbtLocalCredentialsProjectAdapter } from './dbtLocalCredentialsProjectAdapter';
-import { warehouseClientFromCredentials } from '../services/warehouseClients/warehouseClientFromCredentials';
 
 export const projectAdapterFromConfig = async (
     config: DbtProjectConfig,
@@ -24,7 +23,6 @@ export const projectAdapterFromConfig = async (
                 warehouseClient,
                 projectDir: config.project_dir,
                 warehouseCredentials,
-                port: await getPort(),
             });
         case ProjectType.DBT_CLOUD_IDE:
             return new DbtCloudIdeProjectAdapter({
@@ -42,7 +40,6 @@ export const projectAdapterFromConfig = async (
                 githubBranch: config.branch,
                 projectDirectorySubPath: config.project_sub_path,
                 warehouseCredentials,
-                port: await getPort(),
             });
         case ProjectType.GITLAB:
             return new DbtGitlabProjectAdapter({
@@ -52,7 +49,6 @@ export const projectAdapterFromConfig = async (
                 gitlabBranch: config.branch,
                 projectDirectorySubPath: config.project_sub_path,
                 warehouseCredentials,
-                port: await getPort(),
             });
         default:
             const never: never = config;

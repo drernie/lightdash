@@ -1,13 +1,14 @@
+import Ajv from 'ajv';
+import addFormats from 'ajv-formats';
 import {
     DbtModelNode,
+    DbtPackages,
     DbtRawModelNode,
     Explore,
     ExploreError,
     isSupportedDbtAdapter,
     SupportedDbtAdapter,
 } from 'common';
-import Ajv from 'ajv';
-import addFormats from 'ajv-formats';
 import {
     attachTypesToModels,
     convertExplores,
@@ -19,8 +20,8 @@ import modelJsonSchema from '../schema.json';
 import {
     DbtClient,
     ProjectAdapter,
-    WarehouseClient,
     WarehouseCatalog,
+    WarehouseClient,
 } from '../types';
 
 const ajv = new Ajv();
@@ -44,6 +45,13 @@ export class DbtBaseProjectAdapter implements ProjectAdapter {
     public async test(): Promise<void> {
         await this.dbtClient.test();
         await this.warehouseClient.test();
+    }
+
+    public async getDbtPackages(): Promise<DbtPackages | undefined> {
+        if (this.dbtClient.getDbtPackages) {
+            return this.dbtClient.getDbtPackages();
+        }
+        return undefined;
     }
 
     public async compileAllExplores(

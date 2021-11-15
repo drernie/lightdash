@@ -1,13 +1,13 @@
-import tempy from 'tempy';
-import * as path from 'path';
-import * as git from 'isomorphic-git';
-import * as fspromises from 'fs/promises';
-import * as fs from 'fs';
-import * as http from 'isomorphic-git/http/node';
 import { CreateWarehouseCredentials } from 'common';
+import * as fs from 'fs';
+import * as fspromises from 'fs/promises';
+import * as git from 'isomorphic-git';
+import * as http from 'isomorphic-git/http/node';
+import * as path from 'path';
+import tempy from 'tempy';
 import { UnexpectedServerError } from '../errors';
-import { DbtLocalCredentialsProjectAdapter } from './dbtLocalCredentialsProjectAdapter';
 import { WarehouseClient } from '../types';
+import { DbtLocalCredentialsProjectAdapter } from './dbtLocalCredentialsProjectAdapter';
 
 export type DbtGitProjectAdapterArgs = {
     warehouseClient: WarehouseClient;
@@ -15,7 +15,6 @@ export type DbtGitProjectAdapterArgs = {
     gitBranch: string;
     projectDirectorySubPath: string;
     warehouseCredentials: CreateWarehouseCredentials;
-    port: number;
 };
 
 export class DbtGitProjectAdapter extends DbtLocalCredentialsProjectAdapter {
@@ -31,7 +30,6 @@ export class DbtGitProjectAdapter extends DbtLocalCredentialsProjectAdapter {
         gitBranch,
         projectDirectorySubPath,
         warehouseCredentials,
-        port,
     }: DbtGitProjectAdapterArgs) {
         const localRepositoryDir = tempy.directory();
         const projectDir = path.join(
@@ -42,7 +40,6 @@ export class DbtGitProjectAdapter extends DbtLocalCredentialsProjectAdapter {
             warehouseClient,
             projectDir,
             warehouseCredentials,
-            port,
         });
         this.localRepositoryDir = localRepositoryDir;
         this.remoteRepositoryUrl = remoteRepositoryUrl;
